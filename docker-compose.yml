@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: waifu-card-db
+    environment:
+      POSTGRES_DB: waifu_card_game
+      POSTGRES_USER: gameuser
+      POSTGRES_PASSWORD: gamepass123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - waifu-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: waifu-card-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/waifu_card_game
+      SPRING_DATASOURCE_USERNAME: gameuser
+      SPRING_DATASOURCE_PASSWORD: gamepass123
+    depends_on:
+      - postgres
+    networks:
+      - waifu-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: waifu-card-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - waifu-network
+
+  # Redis for caching and real-time features
+  redis:
+    image: redis:7-alpine
+    container_name: waifu-card-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - waifu-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  waifu-network:
+    driver: bridge

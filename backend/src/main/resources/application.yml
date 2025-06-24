@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: waifu-card-game
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/waifu_card_game
+    username: gameuser
+    password: gamepass123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+
+  security:
+    jwt:
+      secret: mySecretKey123456789012345678901234567890
+      expiration: 86400000 # 24 hours in milliseconds
+
+# Custom game configuration
+game:
+  gacha:
+    rates:
+      common: 70
+      rare: 25
+      epic: 4
+      legendary: 1
+  battle:
+    turn-time-limit: 30 # seconds
+    max-deck-size: 5
+  starter:
+    coins: 1000
+    gems: 100
+
+logging:
+  level:
+    com.waifucardgame: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.socket: DEBUG
+
+---
+# Docker profile
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/waifu_card_game
+  redis:
+    host: redis
