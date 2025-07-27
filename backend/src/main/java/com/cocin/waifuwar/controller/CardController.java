@@ -4,6 +4,8 @@ import com.cocin.waifuwar.service.CardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.lang.Nullable;
 
 import java.util.List;
 
@@ -44,4 +46,26 @@ public class CardController {
         List<CardDTO> cards = cardService.getCardsByElement(element);
         return ResponseEntity.ok(cards);
     }
+    @PostMapping(consumes = {"multipart/form-data"})
+    public ResponseEntity<CardDTO> createCard(@RequestPart("card") CardDTO cardDTO,
+                                              @RequestPart("file") @Nullable MultipartFile file)
+    {
+        CardDTO createdCard = cardService.createCard(cardDTO, file);
+        return ResponseEntity.ok(createdCard);
+    }
+
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    public ResponseEntity<CardDTO> updateCard(@PathVariable Long id,
+                                              @RequestPart("card") CardDTO cardDTO,
+                                              @RequestPart("file") @Nullable MultipartFile file) {
+        CardDTO updatedCard = cardService.updateCard(id, cardDTO, file);
+        return ResponseEntity.ok(updatedCard);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteCard(@PathVariable Long id) {
+        cardService.deleteCard(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }
