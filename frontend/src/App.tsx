@@ -5,6 +5,7 @@ import Dashboard from './components/DashBoard';
 import CardCollection from './components/CardCollection';
 import GachaSystem from './components/GachaSystem';
 import BattleArena from './components/BattleArena';
+import CardManager from './components/CardManager';
 import './App.css';
 
 function App() {
@@ -57,6 +58,10 @@ function App() {
                     <Route
                         path="/battle"
                         element={user ? <BattleArena user={user} /> : <Navigate to="/login" />}
+                    />
+                    <Route
+                        path="/admin/cards"
+                        element={user ? <CardManager user={user} /> : <Navigate to="/login" />}
                     />
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                 </Routes>
