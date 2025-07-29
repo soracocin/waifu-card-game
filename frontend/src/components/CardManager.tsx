@@ -35,6 +35,11 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
         element: 'FIRE',
         imageUrl: ''
     });
+    const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+    const [zoom, setZoom] = useState(1);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [dragging, setDragging] = useState(false);
+    const [startDrag, setStartDrag] = useState<{ x: number; y: number } | null>(null);
 
     const rarities = ['COMMON', 'RARE', 'EPIC', 'LEGENDARY'];
     const elements = ['FIRE', 'WATER', 'EARTH', 'AIR', 'LIGHT', 'DARK'];
@@ -42,6 +47,15 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
     useEffect(() => {
         loadCards();
     }, []);
+
+    useEffect(() => {
+        if (!previewImageUrl) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setPreviewImageUrl(null);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [previewImageUrl]);
 
     const loadCards = async () => {
         try {
@@ -143,7 +157,7 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setSelectedFile(file);
-            // Tạo URL tạm thời để xem trước ảnh
+            // Tạo URL tạm thởi để xem trước ảnh
             setImagePreview(URL.createObjectURL(file));
         }
     };
@@ -177,6 +191,61 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
             case 'DARK': return '🌙';
             default: return '❓';
         }
+    };
+
+    const cardGridStyle: React.CSSProperties = {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '1.5rem',
+        padding: '1.5rem',
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)'
+    };
+    const cardItemStyle: React.CSSProperties = {
+        background: 'rgba(255,255,255,0.08)',
+        borderRadius: '12px',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        padding: '1rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        minHeight: '340px',
+        transition: 'box-shadow 0.2s',
+        overflow: 'hidden',
+    };
+    const adminCardImageStyle: React.CSSProperties = {
+        width: '100%',
+        maxWidth: '180px',
+        maxHeight: '180px',
+        objectFit: 'cover',
+        borderRadius: '10px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+        marginBottom: '1rem',
+        background: '#eee',
+    };
+
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setZoom(z => Math.max(0.3, Math.min(3, z - e.deltaY * 0.001)));
+    };
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        setDragging(true);
+        setStartDrag({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    };
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!dragging || !startDrag) return;
+        setOffset({ x: e.clientX - startDrag.x, y: e.clientY - startDrag.y });
+    };
+    const handleMouseUp = () => {
+        setDragging(false);
+        setStartDrag(null);
+    };
+    const handleModalClose = () => {
+        setPreviewImageUrl(null);
+        setZoom(1);
+        setOffset({ x: 0, y: 0 });
     };
 
     if (loading) {
@@ -347,80 +416,125 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
                 </div>
             )}
 
-            <div className="cards-table-container">
-                <table className="cards-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Image</th>
-                            <th>Name</th>
-                            <th>Rarity</th>
-                            <th>Element</th>
-                            <th>Attack</th>
-                            <th>Defense</th>
-                            <th>Cost</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cards.map(card => (
-                            <tr key={card.id}>
-                                <td>{card.id}</td>
-                                <td>
-                                    {card.imageUrl ? (
-                                        <img 
-                                            // URL trả về từ backend đã bao gồm http://localhost:8080/....
-                                            // nên không cần nối chuỗi nữa
-                                            src={card.imageUrl} 
-                                            alt={card.name}
-                                            className="card-thumbnail"
-                                        />
-                                    ) : (
-                                        <div className="no-image">No Image</div>
-                                    )}
-                                </td>
-                                <td className="card-name">{card.name}</td>
-                                <td>
-                                    <span 
-                                        className="rarity-badge"
-                                        style={{ backgroundColor: getRarityColor(card.rarity) }}
-                                    >
-                                        {card.rarity}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span className="element-badge">
-                                        {getElementEmoji(card.element)} {card.element}
-                                    </span>
-                                </td>
-                                <td className="stat-value">{card.attack}</td>
-                                <td className="stat-value">{card.defense}</td>
-                                <td className="stat-value">{card.cost}</td>
-                                <td className="actions">
-                                    <button 
-                                        className="btn-edit"
-                                        onClick={() => handleEdit(card)}
-                                    >
-                                        Edit
-                                    </button>
-                                    <button 
-                                        className="btn-delete"
-                                        onClick={() => handleDelete(card.id!)}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                
-                {cards.length === 0 && (
-                    <div className="no-cards">
-                        No cards found. Create your first card!
+            <div style={cardGridStyle}>
+                {cards.map(card => (
+                    <div key={card.id} style={cardItemStyle}>
+                        <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            style={adminCardImageStyle}
+                            onClick={() => {
+                                setPreviewImageUrl(card.imageUrl);
+                                setZoom(1);
+                                setOffset({ x: 0, y: 0 });
+                            }}
+                            onError={e => (e.currentTarget.src = '/default-card.png')}
+                            className="card-image-clickable"
+                        />
+                        <h3 style={{margin: '0.5rem 0 0.2rem 0'}}>{card.name}</h3>
+                        <div style={{fontSize: '0.95rem', color: '#bbb', marginBottom: '0.5rem'}}>
+                            {getElementEmoji(card.element)} {card.element} | {card.rarity}
+                        </div>
+                        <p style={{fontSize: '0.95rem', marginBottom: '0.5rem', textAlign: 'center', minHeight: '48px'}}>{card.description}</p>
+                        <div style={{display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.95rem', marginBottom: '0.5rem'}}>
+                            <span>ATK: <b>{card.attack}</b></span>
+                            <span>DEF: <b>{card.defense}</b></span>
+                            <span>Cost: <b>{card.cost}</b></span>
+                        </div>
+                        <div style={{display: 'flex', gap: '0.5rem', marginTop: 'auto'}}>
+                            <button className="btn btn-secondary" onClick={() => handleEdit(card)}>Sửa</button>
+                            <button className="btn btn-danger" onClick={() => handleDelete(card.id!)}>Xóa</button>
+                        </div>
                     </div>
-                )}
+                ))}
             </div>
+
+            {cards.length === 0 && (
+                <div className="no-cards">
+                    No cards found. Create your first card!
+                </div>
+            )}
+
+            {previewImageUrl && (
+                <div
+                    className="image-preview-modal"
+                    style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: dragging ? 'grabbing' : 'zoom-in',
+                        transition: 'background 0.2s',
+                    }}
+                    onClick={handleModalClose}
+                    onWheel={handleWheel}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                >
+                    <div
+                        style={{
+                            position: 'relative',
+                            maxWidth: '90vw',
+                            maxHeight: '90vh',
+                            overflow: 'hidden',
+                            background: 'transparent',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <img
+                            src={previewImageUrl}
+                            alt="Preview"
+                            style={{
+                                transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`,
+                                transition: dragging ? 'none' : 'transform 0.2s',
+                                maxWidth: '100%',
+                                maxHeight: '80vh',
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+                                cursor: dragging ? 'grabbing' : 'grab',
+                                userSelect: 'none',
+                            }}
+                            draggable={false}
+                            onMouseDown={handleMouseDown}
+                        />
+                        <div style={{
+                            position: 'absolute',
+                            top: 10, right: 10,
+                            display: 'flex', gap: 8,
+                            zIndex: 2,
+                        }}>
+                            <button
+                                style={{
+                                    background: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 18, cursor: 'pointer', opacity: 0.9
+                                }}
+                                onClick={() => setZoom(z => Math.min(3, z + 0.2))}
+                                type="button"
+                            >+
+                            </button>
+                            <button
+                                style={{
+                                    background: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 18, cursor: 'pointer', opacity: 0.9
+                                }}
+                                onClick={() => setZoom(z => Math.max(0.3, z - 0.2))}
+                                type="button"
+                            >-
+                            </button>
+                            <button
+                                style={{
+                                    background: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', fontSize: 18, cursor: 'pointer', opacity: 0.9
+                                }}
+                                onClick={handleModalClose}
+                                type="button"
+                            >×
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

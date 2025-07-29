@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import Dashboard from './components/DashBoard';
-import CardCollection from './components/CardCollection';
-import GachaSystem from './components/GachaSystem';
-import BattleArena from './components/BattleArena';
-import CardManager from './components/CardManager';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import CollectionPage from './pages/CollectionPage';
+import GachaPage from './pages/GachaPage';
+import BattlePage from './pages/BattlePage';
+import AdminPage from './pages/AdminPage';
+import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
+interface User {
+    id: number;
+    username: string;
+    level: number;
+    coins: number;
+    gems: number;
+    experiencePoints: number;
+}
+
 function App() {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -21,7 +31,7 @@ function App() {
         setLoading(false);
     }, []);
 
-    const handleLogin = (userData) => {
+    const handleLogin = (userData: User) => {
         setUser(userData);
         localStorage.setItem('waifuCardUser', JSON.stringify(userData));
     };
@@ -41,29 +51,30 @@ function App() {
                 <Routes>
                     <Route
                         path="/login"
-                        element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
+                        element={!user ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
                     />
                     <Route
                         path="/dashboard"
-                        element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+                        element={user ? <DashboardPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/collection"
-                        element={user ? <CardCollection user={user} /> : <Navigate to="/login" />}
+                        element={user ? <CollectionPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/gacha"
-                        element={user ? <GachaSystem user={user} /> : <Navigate to="/login" />}
+                        element={user ? <GachaPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/battle"
-                        element={user ? <BattleArena user={user} /> : <Navigate to="/login" />}
+                        element={user ? <BattlePage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
                     />
                     <Route
                         path="/admin/cards"
-                        element={user ? <CardManager user={user} /> : <Navigate to="/login" />}
+                        element={user ? <AdminPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
                     />
                     <Route path="/" element={<Navigate to="/dashboard" />} />
+                    <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </div>
         </Router>
