@@ -22,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // "file:" + uploadDir để trỏ đúng vào thư mục vật lý trên ổ đĩa
-        registry.addResourceHandler("/images/cards/**")
+        registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadDir + "/");
     }
 }

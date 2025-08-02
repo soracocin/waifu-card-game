@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-
+import { UPLOAD_BASE_URL } from "../config";
 interface Card {
     id?: number;
     name: string;
@@ -306,7 +306,7 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
                                         <div className="image-preview mt-2">
                                             <p>Image Preview:</p>
                                             <img 
-                                                src={imagePreview} 
+                                                src={UPLOAD_BASE_URL + imagePreview} 
                                                 alt="Preview" 
                                                 style={{ maxWidth: '150px', maxHeight: '200px', objectFit: 'cover' }} 
                                             />
@@ -420,11 +420,11 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
                 {cards.map(card => (
                     <div key={card.id} style={cardItemStyle}>
                         <img
-                            src={card.imageUrl}
+                            src={UPLOAD_BASE_URL + card.imageUrl}
                             alt={card.name}
                             style={adminCardImageStyle}
                             onClick={() => {
-                                setPreviewImageUrl(card.imageUrl);
+                                setPreviewImageUrl(UPLOAD_BASE_URL + card.imageUrl);
                                 setZoom(1);
                                 setOffset({ x: 0, y: 0 });
                             }}

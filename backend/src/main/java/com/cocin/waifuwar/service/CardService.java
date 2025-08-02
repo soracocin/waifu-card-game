@@ -63,7 +63,7 @@ public class CardService {
         Card newCard = new Card();
 
         if (file != null && !file.isEmpty()) {
-            String fileUrl = fileStorageService.storeFile(file);
+            String fileUrl = fileStorageService.storeFile(file, "cards");
             newCard.setImageUrl(fileUrl);
         } else {
             // Nếu không có file, có thể gán URL mặc định hoặc null
@@ -95,7 +95,7 @@ public class CardService {
                 fileStorageService.deleteFile(existingCard.getImageUrl());
             }
             // Lưu file mới và cập nhật URL
-            String newFileUrl = fileStorageService.storeFile(file);
+            String newFileUrl = fileStorageService.storeFile(file, "cards");
             existingCard.setImageUrl(newFileUrl);
         }
         // Không có file mới được upload, không làm gì với imageUrl
