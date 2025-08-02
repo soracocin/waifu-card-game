@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { UPLOAD_BASE_URL } from "../config";
 
 function CardCollection({ user }) {
     const [userCards, setUserCards] = useState([]);
@@ -12,7 +13,7 @@ function CardCollection({ user }) {
     useEffect(() => {
         loadCards();
     }, []);
-
+    
     const loadCards = async () => {
         try {
             setLoading(true);
@@ -81,6 +82,22 @@ function CardCollection({ user }) {
             case 'DARK': return '🌙';
             default: return '❓';
         }
+    };
+    
+    const cardImageStyle = {
+        width: '100%',
+        height: '150px',
+        background: 'linear-gradient(45deg, #f0f0f0, #e0e0e0)',
+        borderRadius: '5px',
+        marginBottom: '1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '3rem',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        transition: 'all 0.3s ease'
     };
 
     if (loading) {
@@ -161,6 +178,12 @@ function CardCollection({ user }) {
                                 }}
                             >
                                 <div className="card-image">
+                                    <img
+                                        src={UPLOAD_BASE_URL + card.imageUrl}
+                                        alt={card.name}
+                                        style={cardImageStyle}
+                                        className="card-image-clickable"
+                                    />
                                     {getElementEmoji(card.element)}
                                     {!isOwned && (
                                         <div style={{
