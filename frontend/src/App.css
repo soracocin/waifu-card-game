@@ -56,6 +56,11 @@ html, body, #root {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+.nav-links a.active {
+  background-color: rgba(255, 255, 255, 0.35);
+  font-weight: bold;
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -232,6 +237,10 @@ html, body, #root {
 .main-content {
   flex: 1;
   overflow-y: auto;
+}
+
+.main-content .navbar {
+  display: none;
 }
 
 /* Responsive navbar adjustments */

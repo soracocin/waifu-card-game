@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Header from '../components/Header';
 
 interface User {
     id: number;
@@ -46,28 +47,8 @@ function AppLayout({ children, user, onLogout }: AppLayoutProps) {
 
     return (
         <div className="app-layout">
-            {/* Navigation Bar */}
-            <nav className="navbar">
-                <h1>🌸 Waifu Card Game</h1>
-
-                <div className="nav-links">
-                    <Link to="/dashboard">Trang chủ</Link>
-                    <Link to="/collection">Bộ sưu tập</Link>
-                    <Link to="/gacha">Gacha</Link>
-                    <Link to="/battle">Đấu thẻ</Link>
-                </div>
-
-                <div className="user-info">
-                    <div className="currency">
-                        <span>💰 {userStats.coins?.toLocaleString() || 0}</span>
-                        <span>💎 {userStats.gems?.toLocaleString() || 0}</span>
-                    </div>
-                    <span>Lv.{userStats.level} {userStats.username}</span>
-                    <button onClick={handleLogout} className="btn" style={{marginLeft: '1rem'}}>
-                        Đăng xuất
-                    </button>
-                </div>
-            </nav>
+            {/* Unified Header */}
+            <Header user={userStats} onLogout={handleLogout} />
 
             {/* Main Content */}
             <main className="main-content">
