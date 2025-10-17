@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import CollectionPage from './pages/CollectionPage';
+import CardCollectionsPage from './pages/CardCollectionsPage';
 import GachaPage from './pages/GachaPage';
 import BattlePage from './pages/BattlePage';
 import AdminPage from './pages/AdminPage';
@@ -58,9 +58,9 @@ function App() {
                         element={user ? <DashboardPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
                     />
                     <Route
-                        path="/collection"
-                        element={user ? <CollectionPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
-                    />
+                        path="/collections"
+                        element={user ? <CardCollectionsPage /> : <Navigate to="/login" />}
+                    />                    
                     <Route
                         path="/gacha"
                         element={user ? <GachaPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
