@@ -3,67 +3,54 @@ package com.cocin.waifuwar.service;
 import com.cocin.waifuwar.dto.CardCollectionDTO;
 import com.cocin.waifuwar.dto.CollectionImageDTO;
 import com.cocin.waifuwar.dto.DialogueItemDTO;
+import com.cocin.waifuwar.exception.BadRequestException;
+import com.cocin.waifuwar.exception.ResourceNotFoundException;
 import com.cocin.waifuwar.model.Card;
 import com.cocin.waifuwar.model.CardCollection;
 import com.cocin.waifuwar.model.CollectionImage;
 import com.cocin.waifuwar.model.Dialogue;
 import com.cocin.waifuwar.repository.CardCollectionRepository;
 import com.cocin.waifuwar.repository.CardRepository;
-import com.cocin.waifuwar.repository.CollectionImageRepository;
-import com.cocin.waifuwar.repository.DialogueRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class CardCollectionService {
 
-    @Autowired
-    private CardCollectionRepository collectionRepository;
-    
-    @Autowired
-    private CardRepository cardRepository;
-    
-    @Autowired
-    private CollectionImageRepository imageRepository;
-    
-    @Autowired
-    private DialogueRepository dialogueRepository;
+    private final CardCollectionRepository collectionRepository;
+    private final CardRepository cardRepository;
 
-    // Collection CRUD operations
+    public CardCollectionService(CardCollectionRepository collectionRepository,
+                                 CardRepository cardRepository) {
+        this.collectionRepository = collectionRepository;
+        this.cardRepository = cardRepository;
+    }
+
     public CardCollectionDTO createCollection(CardCollectionDTO dto) {
-        Optional<Card> card = cardRepository.findById(dto.getCardId());
-        if (card.isEmpty()) {
-            throw new RuntimeException("Card not found with id: " + dto.getCardId());
-        }
-        
-        // Check if collection name already exists for this card
+        Card card = cardRepository.findById(dto.getCardId())
+                .orElseThrow(() -> new ResourceNotFoundException("Card", dto.getCardId()));
+
         if (collectionRepository.existsByCardIdAndName(dto.getCardId(), dto.getName())) {
-            throw new RuntimeException("Collection with name '" + dto.getName() + "' already exists for this card");
+            throw new BadRequestException("Collection with name '" + dto.getName() + "' already exists for this card");
         }
-        
+
         CardCollection collection = new CardCollection();
-        collection.setCard(card.get());
+        collection.setCard(card);
         collection.setName(dto.getName());
         collection.setDescription(dto.getDescription());
-        
-        // Set order index as the next available position
-        long count = collectionRepository.countByCardId(dto.getCardId());
-        collection.setOrderIndex((int) count);
-        
+        collection.setOrderIndex((int) collectionRepository.countByCardId(dto.getCardId()));
+
         CardCollection saved = collectionRepository.save(collection);
         return convertToDTO(saved);
     }
 
     @Transactional(readOnly = true)
     public List<CardCollectionDTO> getCollectionsByCardId(Long cardId) {
-        List<CardCollection> collections = collectionRepository.findByCardIdWithImages(cardId);
-        return collections.stream()
+        return collectionRepository.findByCardIdWithImages(cardId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -71,48 +58,44 @@ public class CardCollectionService {
     @Transactional(readOnly = true)
     public CardCollectionDTO getCollectionById(Long id) {
         CardCollection collection = collectionRepository.findByIdWithImagesAndDialogues(id)
-                .orElseThrow(() -> new RuntimeException("Collection not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Collection", id));
         return convertToDTO(collection);
     }
 
     public CardCollectionDTO updateCollection(Long id, CardCollectionDTO dto) {
         CardCollection collection = collectionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Collection not found with id: " + id));
-        
-        // Check if new name conflicts with existing collections (except current one)
-        if (!collection.getName().equals(dto.getName()) && 
-            collectionRepository.existsByCardIdAndName(collection.getCard().getId(), dto.getName())) {
-            throw new RuntimeException("Collection with name '" + dto.getName() + "' already exists for this card");
+                .orElseThrow(() -> new ResourceNotFoundException("Collection", id));
+
+        if (!collection.getName().equals(dto.getName()) &&
+                collectionRepository.existsByCardIdAndName(collection.getCard().getId(), dto.getName())) {
+            throw new BadRequestException("Collection with name '" + dto.getName() + "' already exists for this card");
         }
-        
+
         collection.setName(dto.getName());
         collection.setDescription(dto.getDescription());
-        
+
         CardCollection updated = collectionRepository.save(collection);
         return convertToDTO(updated);
     }
 
     public void deleteCollection(Long id) {
-        if (!collectionRepository.existsById(id)) {
-            throw new RuntimeException("Collection not found with id: " + id);
-        }
-        collectionRepository.deleteById(id);
+        CardCollection collection = collectionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection", id));
+        collectionRepository.delete(collection);
     }
 
     @Transactional(readOnly = true)
     public List<CardCollectionDTO> searchCollectionsByName(String name) {
-        List<CardCollection> collections = collectionRepository.findByNameContainingIgnoreCase(name);
-        return collections.stream()
+        return collectionRepository.findByNameContainingIgnoreCase(name).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    // Helper method to convert entity to DTO
     private CardCollectionDTO convertToDTO(CardCollection collection) {
         List<CollectionImageDTO> imageDTOs = collection.getImages().stream()
                 .map(this::convertImageToDTO)
                 .collect(Collectors.toList());
-        
+
         return new CardCollectionDTO(
                 collection.getId(),
                 collection.getCard().getId(),
@@ -126,7 +109,7 @@ public class CardCollectionService {
         List<DialogueItemDTO> dialogueDTOs = image.getDialogues().stream()
                 .map(this::convertDialogueToDTO)
                 .collect(Collectors.toList());
-        
+
         return new CollectionImageDTO(
                 image.getId(),
                 image.getCollection().getId(),

@@ -1,65 +1,74 @@
 package com.cocin.waifuwar.controller;
+
 import com.cocin.waifuwar.dto.CardDTO;
 import com.cocin.waifuwar.service.CardService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.lang.Nullable;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/cards")
+@Validated
+@RequestMapping(value = "/api/cards", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin(origins = "http://localhost:3000")
 public class CardController {
 
-    @Autowired
-    private CardService cardService;
+    private final CardService cardService;
+
+    public CardController(CardService cardService) {
+        this.cardService = cardService;
+    }
 
     @GetMapping
     public ResponseEntity<List<CardDTO>> getAllCards() {
-        List<CardDTO> cards = cardService.getAllCards();
-        return ResponseEntity.ok(cards);
+        return ResponseEntity.ok(cardService.getAllCards());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CardDTO> getCard(@PathVariable Long id) {
-        CardDTO card = cardService.getCard(id);
-        return ResponseEntity.ok(card);
+        return ResponseEntity.ok(cardService.getCard(id));
     }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<CardDTO>> getUserCards(@PathVariable Long userId) {
-        List<CardDTO> cards = cardService.getUserCards(userId);
-        return ResponseEntity.ok(cards);
+        return ResponseEntity.ok(cardService.getUserCards(userId));
     }
 
     @GetMapping("/rarity/{rarity}")
     public ResponseEntity<List<CardDTO>> getCardsByRarity(@PathVariable String rarity) {
-        List<CardDTO> cards = cardService.getCardsByRarity(rarity);
-        return ResponseEntity.ok(cards);
+        return ResponseEntity.ok(cardService.getCardsByRarity(rarity));
     }
 
     @GetMapping("/element/{element}")
     public ResponseEntity<List<CardDTO>> getCardsByElement(@PathVariable String element) {
-        List<CardDTO> cards = cardService.getCardsByElement(element);
-        return ResponseEntity.ok(cards);
-    }
-    @PostMapping(consumes = {"multipart/form-data"})
-    public ResponseEntity<CardDTO> createCard(@RequestPart("card") CardDTO cardDTO,
-                                              @RequestPart("file") @Nullable MultipartFile file)
-    {
-        CardDTO createdCard = cardService.createCard(cardDTO, file);
-        return ResponseEntity.ok(createdCard);
+        return ResponseEntity.ok(cardService.getCardsByElement(element));
     }
 
-    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CardDTO> createCard(@RequestPart("card") @Valid CardDTO cardDTO,
+                                              @RequestPart(value = "file", required = false) MultipartFile file) {
+        CardDTO createdCard = cardService.createCard(cardDTO, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCard);
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CardDTO> updateCard(@PathVariable Long id,
-                                              @RequestPart("card") CardDTO cardDTO,
-                                              @RequestPart("file") @Nullable MultipartFile file) {
-        CardDTO updatedCard = cardService.updateCard(id, cardDTO, file);
-        return ResponseEntity.ok(updatedCard);
+                                              @RequestPart("card") @Valid CardDTO cardDTO,
+                                              @RequestPart(value = "file", required = false) MultipartFile file) {
+        return ResponseEntity.ok(cardService.updateCard(id, cardDTO, file));
     }
 
     @DeleteMapping("/{id}")
@@ -67,5 +76,4 @@ public class CardController {
         cardService.deleteCard(id);
         return ResponseEntity.noContent().build();
     }
-
 }

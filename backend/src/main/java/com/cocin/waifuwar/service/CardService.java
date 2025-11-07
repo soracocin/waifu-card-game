@@ -1,126 +1,126 @@
 package com.cocin.waifuwar.service;
 
 import com.cocin.waifuwar.dto.CardDTO;
+import com.cocin.waifuwar.exception.BadRequestException;
+import com.cocin.waifuwar.exception.ResourceNotFoundException;
+import com.cocin.waifuwar.mapper.CardMapper;
 import com.cocin.waifuwar.model.Card;
 import com.cocin.waifuwar.model.UserCard;
 import com.cocin.waifuwar.repository.CardRepository;
 import com.cocin.waifuwar.repository.UserCardRepository;
 import jakarta.annotation.Nullable;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class CardService {
 
-    @Autowired
-    private CardRepository cardRepository;
+    private final CardRepository cardRepository;
+    private final UserCardRepository userCardRepository;
+    private final FileStorageService fileStorageService;
 
-    @Autowired
-    private UserCardRepository userCardRepository;
-
-    @Autowired
-    private FileStorageService fileStorageService;
-
-    public List<CardDTO> getAllCards() {
-        return cardRepository.findByIsActiveTrue().stream()
-                .map(CardDTO::new)
-                .collect(Collectors.toList());
+    public CardService(CardRepository cardRepository,
+                       UserCardRepository userCardRepository,
+                       FileStorageService fileStorageService) {
+        this.cardRepository = cardRepository;
+        this.userCardRepository = userCardRepository;
+        this.fileStorageService = fileStorageService;
     }
 
+    @Transactional(readOnly = true)
+    public List<CardDTO> getAllCards() {
+        return CardMapper.toDtoList(cardRepository.findAllByIsActiveTrueOrderByNameAsc());
+    }
+
+    @Transactional(readOnly = true)
     public List<CardDTO> getUserCards(Long userId) {
         return userCardRepository.findByUserId(userId).stream()
-                .map(userCard -> new CardDTO(userCard.getCard()))
-                .collect(Collectors.toList());
+                .map(UserCard::getCard)
+                .map(CardMapper::toDto)
+                .toList();
     }
 
+    @Transactional(readOnly = true)
     public CardDTO getCard(Long cardId) {
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
-        return new CardDTO(card);
+        return CardMapper.toDto(getActiveCard(cardId));
     }
 
+    @Transactional(readOnly = true)
     public List<CardDTO> getCardsByRarity(String rarity) {
-        Card.Rarity cardRarity = Card.Rarity.valueOf(rarity.toUpperCase());
-        return cardRepository.findByRarity(cardRarity).stream()
-                .map(CardDTO::new)
-                .collect(Collectors.toList());
+        Card.Rarity parsedRarity = parseRarity(rarity);
+        return CardMapper.toDtoList(cardRepository.findByRarityAndIsActiveTrue(parsedRarity));
     }
 
+    @Transactional(readOnly = true)
     public List<CardDTO> getCardsByElement(String element) {
-        Card.Element cardElement = Card.Element.valueOf(element.toUpperCase());
-        return cardRepository.findByElement(cardElement).stream()
-                .map(CardDTO::new)
-                .collect(Collectors.toList());
+        Card.Element parsedElement = parseElement(element);
+        return CardMapper.toDtoList(cardRepository.findByElementAndIsActiveTrue(parsedElement));
     }
 
-    @Transactional
     public CardDTO createCard(CardDTO cardDTO, @Nullable MultipartFile file) {
-        Card newCard = new Card();
-
-        if (file != null && !file.isEmpty()) {
-            String fileUrl = fileStorageService.storeFile(file, "cards");
-            newCard.setImageUrl(fileUrl);
-        } else {
-            // Nếu không có file, có thể gán URL mặc định hoặc null
-            newCard.setImageUrl(cardDTO.getImageUrl()); // Giữ lại URL cũ nếu có
+        Card card = CardMapper.toEntity(cardDTO);
+        if (hasFile(file)) {
+            card.setImageUrl(storeFile(file, null));
         }
-
-        newCard.setName(cardDTO.getName());
-        newCard.setDescription(cardDTO.getDescription());
-        newCard.setRarity(Card.Rarity.valueOf(cardDTO.getRarity().toUpperCase()));
-        newCard.setElement(Card.Element.valueOf(cardDTO.getElement().toUpperCase()));
-        newCard.setAttack(cardDTO.getAttack());
-        newCard.setDefense(cardDTO.getDefense());
-        newCard.setCost(cardDTO.getCost());
-        newCard.setIsActive(true);
-
-        Card savedCard = cardRepository.save(newCard);
-        return new CardDTO(savedCard);
+        Card savedCard = cardRepository.save(card);
+        return CardMapper.toDto(savedCard);
     }
 
-    @Transactional
-    public CardDTO updateCard(Long id, CardDTO cardDetailsDTO, @Nullable MultipartFile file) {
-        Card existingCard = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
+    public CardDTO updateCard(Long id, CardDTO cardDTO, @Nullable MultipartFile file) {
+        Card existingCard = getActiveCard(id);
+        CardMapper.updateEntity(existingCard, cardDTO);
 
-        // Xử lý upload file mới
-        if (file != null && !file.isEmpty()) {
-            // Xóa file ảnh cũ nếu có
-            if (existingCard.getImageUrl() != null) {
-                fileStorageService.deleteFile(existingCard.getImageUrl());
-            }
-            // Lưu file mới và cập nhật URL
-            String newFileUrl = fileStorageService.storeFile(file, "cards");
-            existingCard.setImageUrl(newFileUrl);
+        if (hasFile(file)) {
+            existingCard.setImageUrl(storeFile(file, existingCard.getImageUrl()));
         }
-        // Không có file mới được upload, không làm gì với imageUrl
-
-        // Cập nhật các thông tin khác
-        existingCard.setName(cardDetailsDTO.getName());
-        existingCard.setDescription(cardDetailsDTO.getDescription());
-        existingCard.setRarity(Card.Rarity.valueOf(cardDetailsDTO.getRarity().toUpperCase()));
-        existingCard.setElement(Card.Element.valueOf(cardDetailsDTO.getElement().toUpperCase()));
-        existingCard.setAttack(cardDetailsDTO.getAttack());
-        existingCard.setDefense(cardDetailsDTO.getDefense());
-        existingCard.setCost(cardDetailsDTO.getCost());
 
         Card updatedCard = cardRepository.save(existingCard);
-        return new CardDTO(updatedCard);
+        return CardMapper.toDto(updatedCard);
     }
 
-    @Transactional
     public void deleteCard(Long id) {
-        Card cardToDelete = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found with id: " + id));
+        Card card = getActiveCard(id);
+        card.setIsActive(false);
+        cardRepository.save(card);
+    }
 
-        // Perform a "soft delete"
-        cardToDelete.setIsActive(false); // <-- CORRECTED setter name
+    private Card getActiveCard(Long id) {
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Card", id));
+        if (Boolean.FALSE.equals(card.getIsActive())) {
+            throw new ResourceNotFoundException("Card", id);
+        }
+        return card;
+    }
 
-        cardRepository.save(cardToDelete);
+    private Card.Rarity parseRarity(String rarity) {
+        try {
+            return Card.Rarity.valueOf(rarity.trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new BadRequestException("Unsupported rarity: " + rarity);
+        }
+    }
+
+    private Card.Element parseElement(String element) {
+        try {
+            return Card.Element.valueOf(element.trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException ex) {
+            throw new BadRequestException("Unsupported element: " + element);
+        }
+    }
+
+    private boolean hasFile(@Nullable MultipartFile file) {
+        return file != null && !file.isEmpty();
+    }
+
+    private String storeFile(MultipartFile file, @Nullable String existingFile) {
+        if (existingFile != null) {
+            fileStorageService.deleteFile(existingFile);
+        }
+        return fileStorageService.storeFile(file, "cards");
     }
 }
