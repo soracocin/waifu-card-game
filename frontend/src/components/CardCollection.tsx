@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { CSSProperties, ChangeEvent } from 'react';
+import type { CSSProperties, ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { UPLOAD_BASE_URL } from '../config';
 import type { User } from '../types/user';
+import type { CardCollectionSummary } from '../types/collection';
 
 type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
 type Element = 'FIRE' | 'WATER' | 'EARTH' | 'AIR' | 'LIGHT' | 'DARK';
@@ -48,7 +49,6 @@ const elementEmoji: Record<Element, string> = {
     LIGHT: '✨',
     DARK: '🌑'
 };
-
 const cardImageStyle: CSSProperties = {
     width: '100%',
     height: '150px',
@@ -71,6 +71,14 @@ function CardCollection({ user }: CardCollectionProps) {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<Filter>('all');
     const [sortBy, setSortBy] = useState<SortKey>('name');
+    const [selectedCardId, setSelectedCardId] = useState<number | ''>('');
+    const [collections, setCollections] = useState<CardCollectionSummary[]>([]);
+    const [collectionsLoading, setCollectionsLoading] = useState(false);
+    const [collectionsError, setCollectionsError] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<CardCollectionSummary[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
 
     const loadCards = useCallback(async () => {
         try {
@@ -91,6 +99,21 @@ function CardCollection({ user }: CardCollectionProps) {
     useEffect(() => {
         loadCards();
     }, [loadCards]);
+
+    const fetchCollectionsByCard = useCallback(async (cardId: number) => {
+        setCollectionsLoading(true);
+        setCollectionsError(null);
+        try {
+            const { data } = await axios.get<CardCollectionSummary[]>(`http://localhost:8080/api/cards/${cardId}/collections`);
+            setCollections(data);
+        } catch (error) {
+            console.error('Error loading collections:', error);
+            setCollections([]);
+            setCollectionsError('Unable to load collections for this card right now.');
+        } finally {
+            setCollectionsLoading(false);
+        }
+    }, []);
 
     const ownedIds = useMemo(() => new Set(userCards.map((card) => card.id)), [userCards]);
 
@@ -130,6 +153,41 @@ function CardCollection({ user }: CardCollectionProps) {
 
     const handleFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
         setFilter(event.target.value as Filter);
+    };
+
+    const handleCollectionSelect = (event: ChangeEvent<HTMLSelectElement>) => {
+        const value = event.target.value;
+        if (!value) {
+            setSelectedCardId('');
+            setCollections([]);
+            return;
+        }
+        const cardId = Number(value);
+        setSelectedCardId(cardId);
+        fetchCollectionsByCard(cardId);
+    };
+
+    const handleSearchSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!searchTerm.trim()) {
+            setSearchResults([]);
+            setSearchError('Enter a collection name to search.');
+            return;
+        }
+        setSearchLoading(true);
+        setSearchError(null);
+        try {
+            const { data } = await axios.get<CardCollectionSummary[]>('http://localhost:8080/api/collections', {
+                params: { name: searchTerm.trim() }
+            });
+            setSearchResults(data);
+        } catch (error) {
+            console.error('Error searching collections:', error);
+            setSearchResults([]);
+            setSearchError('Unable to search collections right now.');
+        } finally {
+            setSearchLoading(false);
+        }
     };
 
     const handleSortChange = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -260,6 +318,111 @@ function CardCollection({ user }: CardCollectionProps) {
                         No cards match the selected filters.
                     </div>
                 )}
+
+                <section style={{ marginTop: '3rem' }}>
+                    <div style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        borderRadius: '16px',
+                        padding: '1.5rem',
+                        marginBottom: '2rem'
+                    }}>
+                        <h2 style={{ marginBottom: '0.5rem' }}>Explore Card Collections</h2>
+                        <p style={{ color: '#ccc', marginBottom: '1rem' }}>
+                            These datasets come from the <code>/api/cards/{'{'}cardId{'}'}/collections</code> and <code>/api/collections</code> backend endpoints.
+                        </p>
+                        <label style={{ color: 'white', display: 'block', marginBottom: '0.5rem' }}>
+                            Choose a card to see its curated collections
+                        </label>
+                        <select
+                            value={selectedCardId}
+                            onChange={handleCollectionSelect}
+                            style={{ padding: '0.6rem', borderRadius: '8px', minWidth: '240px', border: 'none' }}
+                        >
+                            <option value="">Select a card</option>
+                            {allCards.map((card) => (
+                                <option key={card.id} value={card.id}>
+                                    {card.name} ({card.rarity})
+                                </option>
+                            ))}
+                        </select>
+
+                        {collectionsLoading && <p style={{ color: '#ccc', marginTop: '1rem' }}>Loading collections...</p>}
+                        {collectionsError && <p style={{ color: '#ff6b6b', marginTop: '1rem' }}>{collectionsError}</p>}
+                        {!collectionsLoading && selectedCardId && collections.length === 0 && !collectionsError && (
+                            <p style={{ color: '#ccc', marginTop: '1rem' }}>
+                                This card does not have any curated collections yet.
+                            </p>
+                        )}
+
+                        <div className="card-grid" style={{ marginTop: '1.5rem' }}>
+                            {collections.map((collection) => (
+                                <div key={collection.id} className="card" style={{ background: 'rgba(0,0,0,0.35)' }}>
+                                    <h3>{collection.name}</h3>
+                                    <p style={{ color: '#bbb', minHeight: '48px' }}>{collection.description || 'No description provided.'}</p>
+                                    <p style={{ fontWeight: 600, color: '#fff' }}>{collection.images.length} image{collection.images.length === 1 ? '' : 's'}</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                        {collection.images.slice(0, 2).map((image) => (
+                                            <div key={image.id} style={{
+                                                padding: '0.6rem',
+                                                borderRadius: '10px',
+                                                background: 'rgba(255,255,255,0.05)'
+                                            }}>
+                                                <strong>{image.title || 'Untitled image'}</strong>
+                                                <p style={{ margin: '0.25rem 0', color: '#ccc' }}>{image.description || 'No description'}</p>
+                                                <small style={{ color: '#999' }}>{image.dialogues.length} dialogue lines</small>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        borderRadius: '16px',
+                        padding: '1.5rem'
+                    }}>
+                        <h3 style={{ marginBottom: '0.5rem' }}>Search Collections by Name</h3>
+                        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(event) => {
+                                    setSearchTerm(event.target.value);
+                                    if (searchError) {
+                                        setSearchError(null);
+                                    }
+                                }}
+                                placeholder="Enter collection name"
+                                style={{
+                                    flex: '1 1 240px',
+                                    padding: '0.6rem',
+                                    borderRadius: '8px',
+                                    border: 'none'
+                                }}
+                            />
+                            <button type="submit" className="btn btn-secondary" disabled={searchLoading}>
+                                {searchLoading ? 'Searching...' : 'Search'}
+                            </button>
+                        </form>
+                        {searchError && <p style={{ color: '#ff6b6b' }}>{searchError}</p>}
+                        {searchResults.length > 0 && (
+                            <div className="card-grid">
+                                {searchResults.map((collection) => (
+                                    <div key={collection.id} className="card" style={{ background: 'rgba(0,0,0,0.35)' }}>
+                                        <h3>{collection.name}</h3>
+                                        <p style={{ color: '#bbb' }}>{collection.description || 'No description provided.'}</p>
+                                        <p style={{ fontWeight: 600, color: '#fff' }}>Images: {collection.images.length}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {!searchLoading && searchResults.length === 0 && !searchError && searchTerm && (
+                            <p style={{ color: '#ccc' }}>No collections found with that name.</p>
+                        )}
+                    </div>
+                </section>
             </div>
         </div>
     );
