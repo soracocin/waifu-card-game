@@ -1,56 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import Header from '../components/Header';
-
-interface User {
-    id: number;
-    username: string;
-    level: number;
-    coins: number;
-    gems: number;
-    experiencePoints: number;
-}
+import { useAuth } from '../contexts/AuthContext';
 
 interface AppLayoutProps {
-    children: React.ReactNode;
-    user: User;
-    onLogout: () => void;
+    children: ReactNode;
 }
 
-function AppLayout({ children, user, onLogout }: AppLayoutProps) {
-    const [userStats, setUserStats] = useState<User>(user);
-    const [loading, setLoading] = useState(false);
+function AppLayout({ children }: AppLayoutProps) {
     const navigate = useNavigate();
+    const { user, logout } = useAuth();
 
-    const refreshUserData = async () => {
-        try {
-            setLoading(true);
-            const response = await axios.get(`http://localhost:8080/api/users/${user.id}`);
-            setUserStats(response.data);
-            localStorage.setItem('waifuCardUser', JSON.stringify(response.data));
-        } catch (error) {
-            console.error('Error refreshing user data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        refreshUserData();
-    }, [user.id]);
+    if (!user) {
+        return null;
+    }
 
     const handleLogout = () => {
-        onLogout();
+        logout();
         navigate('/login');
     };
 
     return (
         <div className="app-layout">
-            {/* Unified Header */}
-            <Header user={userStats} onLogout={handleLogout} />
-
-            {/* Main Content */}
+            <Header user={user} onLogout={handleLogout} />
             <main className="main-content">
                 {children}
             </main>

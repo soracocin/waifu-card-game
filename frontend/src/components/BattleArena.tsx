@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-function BattleArena({ user }) {
+function BattleArena() {
     const [searching, setSearching] = useState(false);
 
     const startMatchmaking = () => {

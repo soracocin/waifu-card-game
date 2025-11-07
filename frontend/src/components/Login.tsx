@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import type { User } from '../types/user';
 
-function Login({ onLogin }) {
+interface FormState {
+    username: string;
+    email: string;
+    password: string;
+}
+
+function Login() {
+    const navigate = useNavigate();
+    const { login } = useAuth();
     const [isRegistering, setIsRegistering] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormState>({
         username: '',
         email: '',
         password: ''
@@ -11,15 +23,16 @@ function Login({ onLogin }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = event.target;
+        setFormData((current) => ({
+            ...current,
+            [name]: value
+        }));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
         setLoading(true);
         setError('');
 
@@ -29,13 +42,15 @@ function Login({ onLogin }) {
                 ? formData
                 : { username: formData.username, password: formData.password };
 
-            const response = await axios.post(`http://localhost:8080${endpoint}`, payload);
-
-            if (response.data && response.data.id) {
-                onLogin(response.data);
+            const response = await axios.post<User>(`http://localhost:8080${endpoint}`, payload);
+            login(response.data);
+            navigate('/dashboard');
+        } catch (submissionError) {
+            if (axios.isAxiosError(submissionError)) {
+                setError(submissionError.response?.data?.error || 'Authentication failed');
+            } else {
+                setError('Authentication failed');
             }
-        } catch (err) {
-            setError(err.response?.data?.error || 'An error occurred');
         } finally {
             setLoading(false);
         }
@@ -51,7 +66,7 @@ function Login({ onLogin }) {
         }}>
             <div className="form">
                 <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#333' }}>
-                    {isRegistering ? 'Đăng Ký Tài Khoản' : 'Đăng Nhập'}
+                    {isRegistering ? 'Create an account' : 'Sign in'}
                 </h2>
 
                 {error && (
@@ -69,40 +84,40 @@ function Login({ onLogin }) {
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Tên đăng nhập:</label>
+                        <label>Username</label>
                         <input
                             type="text"
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
                             required
-                            placeholder="Nhập tên đăng nhập"
+                            placeholder="Enter username"
                         />
                     </div>
 
                     {isRegistering && (
                         <div className="form-group">
-                            <label>Email:</label>
+                            <label>Email</label>
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
-                                placeholder="Nhập email"
+                                placeholder="Enter email"
                             />
                         </div>
                     )}
 
                     <div className="form-group">
-                        <label>Mật khẩu:</label>
+                        <label>Password</label>
                         <input
                             type="password"
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
                             required
-                            placeholder="Nhập mật khẩu"
+                            placeholder="Enter password"
                         />
                     </div>
 
@@ -112,15 +127,15 @@ function Login({ onLogin }) {
                         disabled={loading}
                         style={{ width: '100%', marginBottom: '1rem' }}
                     >
-                        {loading ? 'Đang xử lý...' : (isRegistering ? 'Đăng Ký' : 'Đăng Nhập')}
+                        {loading ? 'Working...' : (isRegistering ? 'Create account' : 'Sign in')}
                     </button>
                 </form>
 
                 <p style={{ textAlign: 'center', color: '#666' }}>
-                    {isRegistering ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
+                    {isRegistering ? 'Already have an account?' : 'Need an account?'}
                     <button
                         type="button"
-                        onClick={() => setIsRegistering(!isRegistering)}
+                        onClick={() => setIsRegistering((prev) => !prev)}
                         style={{
                             background: 'none',
                             border: 'none',
@@ -130,7 +145,7 @@ function Login({ onLogin }) {
                             marginLeft: '0.5rem'
                         }}
                     >
-                        {isRegistering ? 'Đăng nhập ngay' : 'Đăng ký ngay'}
+                        {isRegistering ? 'Sign in' : 'Register now'}
                     </button>
                 </p>
             </div>

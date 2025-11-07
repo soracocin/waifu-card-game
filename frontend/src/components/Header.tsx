@@ -1,14 +1,5 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
-
-interface User {
-  id: number;
-  username: string;
-  level: number;
-  coins: number;
-  gems: number;
-  experiencePoints: number;
-}
+import type { User } from '../types/user';
 
 interface HeaderProps {
   user: User;

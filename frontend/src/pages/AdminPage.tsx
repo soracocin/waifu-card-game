@@ -1,24 +1,16 @@
-import React from 'react';
 import AppLayout from '../layouts/AppLayout';
 import CardManager from '../components/CardManager';
+import { useAuth } from '../contexts/AuthContext';
 
-interface User {
-    id: number;
-    username: string;
-    level: number;
-    coins: number;
-    gems: number;
-    experiencePoints: number;
-}
+function AdminPage() {
+    const { user } = useAuth();
 
-interface AdminPageProps {
-    user: User;
-    onLogout: () => void;
-}
+    if (!user) {
+        return null;
+    }
 
-function AdminPage({ user, onLogout }: AdminPageProps) {
     return (
-        <AppLayout user={user} onLogout={onLogout}>
+        <AppLayout>
             <div style={{
                 maxWidth: '1400px',
                 margin: '0 auto',
@@ -32,7 +24,7 @@ function AdminPage({ user, onLogout }: AdminPageProps) {
                 <h2 style={{ textAlign: 'center', marginBottom: '2rem', fontWeight: 700, letterSpacing: 1, color: '#fff' }}>
                     Quản lý thẻ bài
                 </h2>
-                <CardManager user={user} />
+                <CardManager />
             </div>
         </AppLayout>
     );

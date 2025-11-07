@@ -10,14 +10,10 @@ interface Card {
     cost: number;
     rarity: string;
     element: string;
-    imageUrl: string;
+    imageUrl?: string;
 }
 
-interface CardManagerProps {
-    user: any;
-}
-
-const CardManager: React.FC<CardManagerProps> = ({ user }) => {
+const CardManager: React.FC = () => {
     const [cards, setCards] = useState<Card[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -185,10 +181,10 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
         switch (element) {
             case 'FIRE': return '🔥';
             case 'WATER': return '💧';
-            case 'EARTH': return '🌍';
-            case 'AIR': return '💨';
+            case 'EARTH': return '🌱';
+            case 'AIR': return '🌪️';
             case 'LIGHT': return '✨';
-            case 'DARK': return '🌙';
+            case 'DARK': return '🌑';
             default: return '❓';
         }
     };
@@ -432,7 +428,7 @@ const CardManager: React.FC<CardManagerProps> = ({ user }) => {
                             className="card-image-clickable"
                         />
                         <h3 style={{margin: '0.5rem 0 0.2rem 0'}}>{card.name}</h3>
-                        <div style={{fontSize: '0.95rem', color: '#bbb', marginBottom: '0.5rem'}}>
+                        <div style={{fontSize: '0.95rem', color: getRarityColor(card.rarity), marginBottom: '0.5rem'}}>
                             {getElementEmoji(card.element)} {card.element} | {card.rarity}
                         </div>
                         <p style={{fontSize: '0.95rem', marginBottom: '0.5rem', textAlign: 'center', minHeight: '48px'}}>{card.description}</p>

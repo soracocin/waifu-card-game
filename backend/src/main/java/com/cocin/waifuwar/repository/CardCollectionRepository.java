@@ -25,6 +25,8 @@ public interface CardCollectionRepository extends JpaRepository<CardCollection, 
 
     List<CardCollection> findByNameContainingIgnoreCase(String keyword);
 
+    boolean existsByCardIdAndName(Long cardId, String name);
+
     // ============ COMPLEX QUERIES WITH @Query ============
 
     @Query("SELECT cc FROM CardCollection cc WHERE SIZE(cc.images) >= :minImages")
@@ -76,6 +78,12 @@ public interface CardCollectionRepository extends JpaRepository<CardCollection, 
             "LEFT JOIN FETCH cc.images " +
             "WHERE cc.id = :id")
     Optional<CardCollection> findByIdWithImages(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT cc FROM CardCollection cc " +
+            "LEFT JOIN FETCH cc.images ci " +
+            "LEFT JOIN FETCH ci.dialogues " +
+            "WHERE cc.id = :id")
+    Optional<CardCollection> findByIdWithImagesAndDialogues(@Param("id") Long id);
 
     @Query("SELECT cc FROM CardCollection cc " +
             "LEFT JOIN FETCH cc.images " +

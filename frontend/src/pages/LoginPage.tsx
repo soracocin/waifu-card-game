@@ -1,15 +1,10 @@
-import React from 'react';
 import AuthLayout from '../layouts/AuthLayout';
 import Login from '../components/Login';
 
-interface LoginPageProps {
-    onLogin: (userData: any) => void;
-}
-
-function LoginPage({ onLogin }: LoginPageProps) {
+function LoginPage() {
     return (
         <AuthLayout>
-            <Login onLogin={onLogin} />
+            <Login />
         </AuthLayout>
     );
 }

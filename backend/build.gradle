@@ -7,6 +7,9 @@ plugins {
 group = 'com.cocin.waifuwar'
 version = '1.0.0'
 description = 'Backend for Waifu Card Game'
+springBoot {
+    mainClass = 'com.cocin.waifuwar.BackendApplication'
+}
 
 java {
     toolchain {

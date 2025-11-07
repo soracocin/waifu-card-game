@@ -1,24 +1,16 @@
-import React from 'react';
 import AppLayout from '../layouts/AppLayout';
 import CardCollection from '../components/CardCollection';
+import { useAuth } from '../contexts/AuthContext';
 
-interface User {
-    id: number;
-    username: string;
-    level: number;
-    coins: number;
-    gems: number;
-    experiencePoints: number;
-}
+function CollectionPage() {
+    const { user } = useAuth();
 
-interface CollectionPageProps {
-    user: User;
-    onLogout: () => void;
-}
+    if (!user) {
+        return null;
+    }
 
-function CollectionPage({ user, onLogout }: CollectionPageProps) {
     return (
-        <AppLayout user={user} onLogout={onLogout}>
+        <AppLayout>
             <CardCollection user={user} />
         </AppLayout>
     );

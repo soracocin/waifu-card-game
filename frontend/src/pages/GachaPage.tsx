@@ -1,24 +1,16 @@
-import React from 'react';
 import AppLayout from '../layouts/AppLayout';
 import GachaSystem from '../components/GachaSystem';
+import { useAuth } from '../contexts/AuthContext';
 
-interface User {
-    id: number;
-    username: string;
-    level: number;
-    coins: number;
-    gems: number;
-    experiencePoints: number;
-}
+function GachaPage() {
+    const { user } = useAuth();
 
-interface GachaPageProps {
-    user: User;
-    onLogout: () => void;
-}
+    if (!user) {
+        return null;
+    }
 
-function GachaPage({ user, onLogout }: GachaPageProps) {
     return (
-        <AppLayout user={user} onLogout={onLogout}>
+        <AppLayout>
             <GachaSystem user={user} />
         </AppLayout>
     );

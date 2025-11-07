@@ -1,83 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
+import type { User } from '../types/user';
 
-function GachaSystem({ user }) {
+type Rarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
+type Element = 'FIRE' | 'WATER' | 'EARTH' | 'AIR' | 'LIGHT' | 'DARK';
+
+interface Card {
+    id: number;
+    name: string;
+    description: string;
+    attack: number;
+    defense: number;
+    cost: number;
+    rarity: Rarity;
+    element: Element;
+    imageUrl?: string;
+}
+
+interface GachaResult {
+    cards: Card[];
+    pullType: string;
+    totalCost: number;
+    remainingCoins: number;
+    remainingGems: number;
+}
+
+interface GachaSystemProps {
+    user: User;
+}
+
+const rarityColor: Record<Rarity, string> = {
+    COMMON: '#808080',
+    RARE: '#0066cc',
+    EPIC: '#9933cc',
+    LEGENDARY: '#ff9900'
+};
+
+const elementEmoji: Record<Element, string> = {
+    FIRE: '🔥',
+    WATER: '💧',
+    EARTH: '🌱',
+    AIR: '🌪️',
+    LIGHT: '✨',
+    DARK: '🌑'
+};
+
+const rarityEmoji: Record<Rarity, string> = {
+    COMMON: '⭐',
+    RARE: '🌟',
+    EPIC: '💠',
+    LEGENDARY: '🏆'
+};
+
+function GachaSystem({ user }: GachaSystemProps) {
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
-    const [userStats, setUserStats] = useState(user);
+    const [result, setResult] = useState<GachaResult | null>(null);
+    const [userStats, setUserStats] = useState<User>(user);
     const [showResult, setShowResult] = useState(false);
 
     const refreshUserData = async () => {
         try {
-            const response = await axios.get(`http://localhost:8080/api/users/${user.id}`);
+            const response = await axios.get<User>(`http://localhost:8080/api/users/${user.id}`);
             setUserStats(response.data);
         } catch (error) {
             console.error('Error refreshing user data:', error);
         }
     };
 
-    const performGacha = async (type, useGems = false) => {
-        if (loading) return;
+    const performGacha = async (pull: 'single' | 'ten', useGems = false) => {
+        if (loading) {
+            return;
+        }
 
-        const cost = type === 'single'
-            ? (useGems ? 1 : 100)
-            : (useGems ? 9 : 900);
-
+        const cost = pull === 'single' ? (useGems ? 1 : 100) : (useGems ? 9 : 900);
         const currency = useGems ? userStats.gems : userStats.coins;
 
         if (currency < cost) {
-            alert(`Không đủ ${useGems ? 'gems' : 'coins'}! Cần ${cost} ${useGems ? 'gems' : 'coins'}.`);
+            alert(`Not enough ${useGems ? 'gems' : 'coins'}. You need ${cost}.`);
             return;
         }
 
         try {
             setLoading(true);
-            const endpoint = type === 'single' ? 'single' : 'ten';
-            const response = await axios.post(
+            const endpoint = pull === 'single' ? 'single' : 'ten';
+            const response = await axios.post<GachaResult>(
                 `http://localhost:8080/api/gacha/${endpoint}/${user.id}?useGems=${useGems}`
             );
-
             setResult(response.data);
             setShowResult(true);
             await refreshUserData();
         } catch (error) {
             console.error('Gacha error:', error);
-            alert('Có lỗi xảy ra khi thực hiện gacha!');
+            alert('Something went wrong while running gacha.');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const getRarityColor = (rarity) => {
-        switch (rarity) {
-            case 'COMMON': return '#808080';
-            case 'RARE': return '#0066cc';
-            case 'EPIC': return '#9933cc';
-            case 'LEGENDARY': return '#ff9900';
-            default: return '#808080';
-        }
-    };
-
-    const getElementEmoji = (element) => {
-        switch (element) {
-            case 'FIRE': return '🔥';
-            case 'WATER': return '💧';
-            case 'EARTH': return '🌍';
-            case 'AIR': return '💨';
-            case 'LIGHT': return '✨';
-            case 'DARK': return '🌙';
-            default: return '❓';
-        }
-    };
-
-    const getRarityEmoji = (rarity) => {
-        switch (rarity) {
-            case 'COMMON': return '⚪';
-            case 'RARE': return '🔵';
-            case 'EPIC': return '🟣';
-            case 'LEGENDARY': return '🟡';
-            default: return '⚪';
         }
     };
 
@@ -85,12 +102,12 @@ function GachaSystem({ user }) {
         return (
             <div>
                 <nav className="navbar">
-                    <h1>🎰 Kết Quả Gacha</h1>
+                    <h1>Gacha Results</h1>
                     <div className="nav-links">
-                        <Link to="/dashboard">Trang chủ</Link>
-                        <Link to="/collection">Bộ sưu tập</Link>
+                        <Link to="/dashboard">Dashboard</Link>
+                        <Link to="/collection">Collection</Link>
                         <Link to="/gacha">Gacha</Link>
-                        <Link to="/battle">Đấu thẻ</Link>
+                        <Link to="/battle">Battle</Link>
                     </div>
                 </nav>
 
@@ -102,35 +119,41 @@ function GachaSystem({ user }) {
                         marginBottom: '2rem'
                     }}>
                         <h2 style={{ color: 'white', marginBottom: '1rem' }}>
-                            🎉 Bạn đã nhận được {result.cards.length} thẻ mới!
+                            You pulled {result.cards.length} new cards!
                         </h2>
                         <p style={{ color: 'white' }}>
-                            Chi phí: {result.totalCost} {result.pullType.includes('GEM') ? 'gems 💎' : 'coins 💰'}
+                            Cost: {result.totalCost} {result.pullType.includes('GEM') ? 'gems' : 'coins'}
                         </p>
                         <p style={{ color: 'white' }}>
-                            Còn lại: {result.remainingCoins} coins 💰 | {result.remainingGems} gems 💎
+                            Remaining: {result.remainingCoins} coins | {result.remainingGems} gems
                         </p>
                     </div>
 
                     <div className="card-grid" style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                        {result.cards.map((card, index) => (
+                        {result.cards.map((card) => (
                             <div
-                                key={index}
+                                key={`${card.id}-${card.name}`}
                                 className="card"
                                 style={{
-                                    border: `3px solid ${getRarityColor(card.rarity)}`,
-                                    animation: `cardFlip 0.6s ease-in-out ${index * 0.1}s both`
+                                    border: `3px solid ${rarityColor[card.rarity]}`
                                 }}
                             >
                                 <div className="card-image">
-                                    {getElementEmoji(card.element)}
                                     <div style={{
                                         position: 'absolute',
                                         top: '10px',
                                         right: '10px',
                                         fontSize: '1.5rem'
                                     }}>
-                                        {getRarityEmoji(card.rarity)}
+                                        {rarityEmoji[card.rarity]}
+                                    </div>
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '10px',
+                                        left: '10px',
+                                        fontSize: '1.2rem'
+                                    }}>
+                                        {elementEmoji[card.element]}
                                     </div>
                                 </div>
 
@@ -141,15 +164,12 @@ function GachaSystem({ user }) {
                                     </p>
 
                                     <div className="card-stats">
-                                        <span className="stat">⚔️ {card.attack}</span>
-                                        <span className="stat">🛡️ {card.defense}</span>
-                                        <span className="stat">💎 {card.cost}</span>
+                                        <span className="stat">ATK {card.attack}</span>
+                                        <span className="stat">DEF {card.defense}</span>
+                                        <span className="stat">COST {card.cost}</span>
                                     </div>
 
-                                    <div
-                                        className="rarity"
-                                        style={{ background: getRarityColor(card.rarity) }}
-                                    >
+                                    <div className="rarity" style={{ background: rarityColor[card.rarity] }}>
                                         {card.rarity}
                                     </div>
                                 </div>
@@ -163,30 +183,13 @@ function GachaSystem({ user }) {
                             onClick={() => setShowResult(false)}
                             style={{ marginRight: '1rem' }}
                         >
-                            Tiếp tục Gacha 🎰
+                            Pull Again
                         </button>
                         <Link to="/collection" className="btn btn-large">
-                            Xem Bộ Sưu Tập 📚
+                            View Collection
                         </Link>
                     </div>
                 </div>
-
-                <style jsx>{`
-          @keyframes cardFlip {
-            0% {
-              transform: rotateY(180deg) scale(0.8);
-              opacity: 0;
-            }
-            50% {
-              transform: rotateY(90deg) scale(0.9);
-              opacity: 0.5;
-            }
-            100% {
-              transform: rotateY(0deg) scale(1);
-              opacity: 1;
-            }
-          }
-        `}</style>
             </div>
         );
     }
@@ -194,81 +197,46 @@ function GachaSystem({ user }) {
     return (
         <div>
             <nav className="navbar">
-                <h1>🎰 Gacha System</h1>
+                <h1>Gacha System</h1>
                 <div className="nav-links">
-                    <Link to="/dashboard">Trang chủ</Link>
-                    <Link to="/collection">Bộ sưu tập</Link>
+                    <Link to="/dashboard">Dashboard</Link>
+                    <Link to="/collection">Collection</Link>
                     <Link to="/gacha">Gacha</Link>
-                    <Link to="/battle">Đấu thẻ</Link>
+                    <Link to="/battle">Battle</Link>
                 </div>
                 <div className="currency">
-                    <span>💰 {userStats.coins?.toLocaleString() || 0}</span>
-                    <span>💎 {userStats.gems?.toLocaleString() || 0}</span>
+                    <span>Coins {userStats.coins?.toLocaleString() || 0}</span>
+                    <span>Gems {userStats.gems?.toLocaleString() || 0}</span>
                 </div>
             </nav>
 
             <div style={{ padding: '2rem' }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-
-                    {/* Gacha Info */}
                     <div style={{
                         background: 'rgba(255,255,255,0.1)',
-                        padding: '2rem',
-                        borderRadius: '15px',
-                        marginBottom: '3rem',
-                        textAlign: 'center'
+                        padding: '1.5rem',
+                        borderRadius: '12px',
+                        marginBottom: '2rem'
                     }}>
-                        <h2 style={{ color: 'white', marginBottom: '1rem' }}>
-                            ✨ Mở Thẻ Waifu Mới ✨
-                        </h2>
-                        <p style={{ color: 'white', fontSize: '1.1rem', lineHeight: '1.6' }}>
-                            Sử dụng coins hoặc gems để mở những thẻ waifu tuyệt đẹp!
-                            <br />Cơ hội nhận thẻ hiếm với gacha 10 lần cao hơn!
-                        </p>
+                        <h2 style={{ color: 'white', marginBottom: '1rem' }}>Gacha Rewards</h2>
+                        <ul style={{ color: 'white', lineHeight: 1.6 }}>
+                            <li>Single pull: 100 coins or 1 gem</li>
+                            <li>Ten pull: 900 coins or 9 gems</li>
+                            <li>Ten pull guarantees at least one Rare card</li>
+                            <li>Use coins first to save gems for events</li>
+                        </ul>
                     </div>
 
-                    {/* Rates Display */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                        gap: '1rem',
-                        marginBottom: '3rem'
-                    }}>
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚪</div>
-                            <h4>COMMON</h4>
-                            <p style={{ margin: 0, color: '#666' }}>70%</p>
-                        </div>
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔵</div>
-                            <h4>RARE</h4>
-                            <p style={{ margin: 0, color: '#666' }}>25%</p>
-                        </div>
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🟣</div>
-                            <h4>EPIC</h4>
-                            <p style={{ margin: 0, color: '#666' }}>4%</p>
-                        </div>
-                        <div className="card" style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🟡</div>
-                            <h4>LEGENDARY</h4>
-                            <p style={{ margin: 0, color: '#666' }}>1%</p>
-                        </div>
-                    </div>
-
-                    {/* Gacha Options */}
                     <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                         gap: '2rem'
                     }}>
-
-                        {/* Single Pull */}
                         <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎲</div>
-                            <h3>Mở 1 Thẻ</h3>
+                            <h3>Single Pull</h3>
                             <p style={{ margin: '1rem 0', color: '#666' }}>
-                                Mở một thẻ ngẫu nhiên
+                                Grab a random card with instant delivery.
                             </p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -276,29 +244,25 @@ function GachaSystem({ user }) {
                                     className="btn btn-large"
                                     onClick={() => performGacha('single', false)}
                                     disabled={loading || userStats.coins < 100}
-                                    style={{ opacity: userStats.coins < 100 ? 0.5 : 1 }}
                                 >
-                                    {loading ? 'Đang mở...' : '100 Coins 💰'}
+                                    {loading ? 'Processing...' : '100 Coins'}
                                 </button>
 
                                 <button
                                     className="btn btn-large btn-warning"
                                     onClick={() => performGacha('single', true)}
                                     disabled={loading || userStats.gems < 1}
-                                    style={{ opacity: userStats.gems < 1 ? 0.5 : 1 }}
                                 >
-                                    {loading ? 'Đang mở...' : '1 Gem 💎'}
+                                    {loading ? 'Processing...' : '1 Gem'}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Ten Pull */}
                         <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎁</div>
-                            <h3>Mở 10 Thẻ</h3>
+                            <h3>Ten Pull</h3>
                             <p style={{ margin: '1rem 0', color: '#666' }}>
-                                Mở 10 thẻ cùng lúc<br />
-                                <strong>Đảm bảo ít nhất 1 thẻ Rare+!</strong>
+                                Ten cards plus a guaranteed Rare or better.
                             </p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -306,34 +270,21 @@ function GachaSystem({ user }) {
                                     className="btn btn-large btn-success"
                                     onClick={() => performGacha('ten', false)}
                                     disabled={loading || userStats.coins < 900}
-                                    style={{ opacity: userStats.coins < 900 ? 0.5 : 1 }}
                                 >
-                                    {loading ? 'Đang mở...' : '900 Coins 💰'}
+                                    {loading ? 'Processing...' : '900 Coins'}
                                 </button>
-                                <small style={{ color: '#666' }}>Tiết kiệm 100 coins!</small>
+                                <small style={{ color: '#666' }}>Save 100 coins</small>
 
                                 <button
                                     className="btn btn-large btn-warning"
                                     onClick={() => performGacha('ten', true)}
                                     disabled={loading || userStats.gems < 9}
-                                    style={{ opacity: userStats.gems < 9 ? 0.5 : 1 }}
                                 >
-                                    {loading ? 'Đang mở...' : '9 Gems 💎'}
+                                    {loading ? 'Processing...' : '9 Gems'}
                                 </button>
-                                <small style={{ color: '#666' }}>Tiết kiệm 1 gem!</small>
+                                <small style={{ color: '#666' }}>Save 1 gem</small>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Tips */}
-                    <div className="card" style={{ marginTop: '3rem' }}>
-                        <h3>💡 Mẹo Gacha</h3>
-                        <ul style={{ paddingLeft: '1.5rem', lineHeight: '1.8' }}>
-                            <li>Gacha 10 lần để đảm bảo ít nhất 1 thẻ Rare hoặc cao hơn</li>
-                            <li>Gems hiếm hơn coins, nên sử dụng coins trước khi dùng gems</li>
-                            <li>Thẻ trùng sẽ cho thêm EXP để nâng cấp thẻ hiện có</li>
-                            <li>Thẻ LEGENDARY có tỷ lệ rất thấp nhưng sức mạnh vượt trội</li>
-                        </ul>
                     </div>
                 </div>
             </div>

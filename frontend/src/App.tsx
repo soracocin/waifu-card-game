@@ -1,45 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import CardCollectionsPage from './pages/CardCollectionsPage';
+import CollectionPage from './pages/CollectionPage';
 import GachaPage from './pages/GachaPage';
 import BattlePage from './pages/BattlePage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
 import './App.css';
 
-interface User {
-    id: number;
-    username: string;
-    level: number;
-    coins: number;
-    gems: number;
-    experiencePoints: number;
-}
-
 function App() {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        // Check if user is logged in (from localStorage)
-        const savedUser = localStorage.getItem('waifuCardUser');
-        if (savedUser) {
-            setUser(JSON.parse(savedUser));
-        }
-        setLoading(false);
-    }, []);
-
-    const handleLogin = (userData: User) => {
-        setUser(userData);
-        localStorage.setItem('waifuCardUser', JSON.stringify(userData));
-    };
-
-    const handleLogout = () => {
-        setUser(null);
-        localStorage.removeItem('waifuCardUser');
-    };
+    const { user, loading } = useAuth();
 
     if (loading) {
         return <div className="loading">Loading...</div>;
@@ -51,29 +23,49 @@ function App() {
                 <Routes>
                     <Route
                         path="/login"
-                        element={!user ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/dashboard" />}
+                        element={!user ? <LoginPage /> : <Navigate to="/dashboard" replace />}
                     />
                     <Route
                         path="/dashboard"
-                        element={user ? <DashboardPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+                        element={(
+                            <ProtectedRoute>
+                                <DashboardPage />
+                            </ProtectedRoute>
+                        )}
                     />
                     <Route
-                        path="/collections"
-                        element={user ? <CardCollectionsPage /> : <Navigate to="/login" />}
-                    />                    
+                        path="/collection"
+                        element={(
+                            <ProtectedRoute>
+                                <CollectionPage />
+                            </ProtectedRoute>
+                        )}
+                    />
                     <Route
                         path="/gacha"
-                        element={user ? <GachaPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+                        element={(
+                            <ProtectedRoute>
+                                <GachaPage />
+                            </ProtectedRoute>
+                        )}
                     />
                     <Route
                         path="/battle"
-                        element={user ? <BattlePage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+                        element={(
+                            <ProtectedRoute>
+                                <BattlePage />
+                            </ProtectedRoute>
+                        )}
                     />
                     <Route
                         path="/admin/cards"
-                        element={user ? <AdminPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}
+                        element={(
+                            <ProtectedRoute>
+                                <AdminPage />
+                            </ProtectedRoute>
+                        )}
                     />
-                    <Route path="/" element={<Navigate to="/dashboard" />} />
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </div>

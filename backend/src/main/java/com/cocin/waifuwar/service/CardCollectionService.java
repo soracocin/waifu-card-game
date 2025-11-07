@@ -70,10 +70,8 @@ public class CardCollectionService {
 
     @Transactional(readOnly = true)
     public CardCollectionDTO getCollectionById(Long id) {
-        CardCollection collection = collectionRepository.findByIdWithImagesAndDialogues(id);
-        if (collection == null) {
-            throw new RuntimeException("Collection not found with id: " + id);
-        }
+        CardCollection collection = collectionRepository.findByIdWithImagesAndDialogues(id)
+                .orElseThrow(() -> new RuntimeException("Collection not found with id: " + id));
         return convertToDTO(collection);
     }
 
