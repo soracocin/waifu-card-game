@@ -5,6 +5,7 @@ import CollectionPage from './pages/CollectionPage';
 import GachaPage from './pages/GachaPage';
 import BattlePage from './pages/BattlePage';
 import AdminPage from './pages/AdminPage';
+import AdminGalleriesPage from './pages/AdminGalleriesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
@@ -62,6 +63,14 @@ function App() {
                         element={(
                             <ProtectedRoute>
                                 <AdminPage />
+                            </ProtectedRoute>
+                        )}
+                    />
+                    <Route
+                        path="/admin/galleries"
+                        element={(
+                            <ProtectedRoute>
+                                <AdminGalleriesPage />
                             </ProtectedRoute>
                         )}
                     />

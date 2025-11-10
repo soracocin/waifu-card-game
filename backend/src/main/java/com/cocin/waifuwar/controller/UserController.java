@@ -1,11 +1,13 @@
 package com.cocin.waifuwar.controller;
 import com.cocin.waifuwar.dto.UserDTO;
+import com.cocin.waifuwar.model.User;
 import com.cocin.waifuwar.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -35,9 +37,10 @@ public class UserController {
             String username = request.get("username");
             String password = request.get("password");
 
-            var user = userService.findByUsername(username);
-            if (user.isPresent() && userService.validatePassword(password, user.get().getPasswordHash())) {
-                return ResponseEntity.ok(new UserDTO(user.get()));
+            Optional<User> userOptional = userService.findByUsername(username);
+            if (userOptional.isPresent() &&
+                    userService.validatePassword(password, userOptional.get().getPasswordHash())) {
+                return ResponseEntity.ok(new UserDTO(userOptional.get()));
             } else {
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid credentials"));
             }

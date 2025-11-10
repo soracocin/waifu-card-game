@@ -1,9 +1,9 @@
 import AppLayout from '../layouts/AppLayout';
-import CardManager from '../components/CardManager';
+import GalleryManager from '../components/GalleryManager';
 import AdminSectionNav from '../components/AdminSectionNav';
 import { useAuth } from '../contexts/AuthContext';
 
-function AdminPage() {
+function AdminGalleriesPage() {
     const { user } = useAuth();
 
     if (!user) {
@@ -23,13 +23,13 @@ function AdminPage() {
                 overflowX: 'auto',
             }}>
                 <h2 style={{ textAlign: 'center', marginBottom: '1.25rem', fontWeight: 700, letterSpacing: 1, color: '#fff' }}>
-                    Qu���n lA� th��� bA�i
+                    Gallery Management
                 </h2>
                 <AdminSectionNav />
-                <CardManager />
+                <GalleryManager />
             </div>
         </AppLayout>
     );
 }
 
-export default AdminPage;
+export default AdminGalleriesPage;
