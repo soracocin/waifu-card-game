@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { UPLOAD_BASE_URL } from '../config';
+import { handleImageError } from '../utils/imageFallback';
 import type { User } from '../types/user';
 import type { CardCollectionSummary } from '../types/collection';
 
@@ -42,13 +44,14 @@ const rarityOrder: Record<Rarity, number> = {
 };
 
 const elementEmoji: Record<Element, string> = {
-    FIRE: '🔥',
-    WATER: '💧',
-    EARTH: '🌱',
-    AIR: '🌪️',
-    LIGHT: '✨',
-    DARK: '🌑'
+    FIRE: '??',
+    WATER: '??',
+    EARTH: '??',
+    AIR: '???',
+    LIGHT: '?',
+    DARK: '??'
 };
+
 const cardImageStyle: CSSProperties = {
     width: '100%',
     height: '150px',
@@ -66,6 +69,7 @@ const cardImageStyle: CSSProperties = {
 };
 
 function CardCollection({ user }: CardCollectionProps) {
+    const { t } = useTranslation();
     const [userCards, setUserCards] = useState<Card[]>([]);
     const [allCards, setAllCards] = useState<Card[]>([]);
     const [loading, setLoading] = useState(true);
@@ -84,7 +88,7 @@ function CardCollection({ user }: CardCollectionProps) {
         try {
             setLoading(true);
             const [ownedResponse, allResponse] = await Promise.all([
-                axios.get<Card[]>(`http://localhost:8080/api/cards/user/${user.id}`),
+                axios.get<Card[]>('http://localhost:8080/api/cards/user/' + user.id),
                 axios.get<Card[]>('http://localhost:8080/api/cards')
             ]);
             setUserCards(ownedResponse.data);
@@ -104,16 +108,16 @@ function CardCollection({ user }: CardCollectionProps) {
         setCollectionsLoading(true);
         setCollectionsError(null);
         try {
-            const { data } = await axios.get<CardCollectionSummary[]>(`http://localhost:8080/api/cards/${cardId}/collections`);
+            const { data } = await axios.get<CardCollectionSummary[]>('http://localhost:8080/api/cards/' + cardId + '/collections');
             setCollections(data);
         } catch (error) {
             console.error('Error loading collections:', error);
             setCollections([]);
-            setCollectionsError('Unable to load collections for this card right now.');
+            setCollectionsError(t('collection.explore.error'));
         } finally {
             setCollectionsLoading(false);
         }
-    }, []);
+    }, [t]);
 
     const ownedIds = useMemo(() => new Set(userCards.map((card) => card.id)), [userCards]);
 
@@ -171,7 +175,7 @@ function CardCollection({ user }: CardCollectionProps) {
         event.preventDefault();
         if (!searchTerm.trim()) {
             setSearchResults([]);
-            setSearchError('Enter a collection name to search.');
+            setSearchError(t('collection.search.validation'));
             return;
         }
         setSearchLoading(true);
@@ -184,7 +188,7 @@ function CardCollection({ user }: CardCollectionProps) {
         } catch (error) {
             console.error('Error searching collections:', error);
             setSearchResults([]);
-            setSearchError('Unable to search collections right now.');
+            setSearchError(t('collection.search.error'));
         } finally {
             setSearchLoading(false);
         }
@@ -195,18 +199,21 @@ function CardCollection({ user }: CardCollectionProps) {
     };
 
     if (loading) {
-        return <div className="loading">Loading your collection...</div>;
+        return <div className="loading">{t('collection.loading')}</div>;
     }
+
+    const cardEndpointText = '/api/cards/{cardId}/collections';
+    const collectionsEndpointText = '/api/collections';
 
     return (
         <div>
             <nav className="navbar">
-                <h1>Card Collection</h1>
+                <h1>{t('collection.title')}</h1>
                 <div className="nav-links">
-                    <Link to="/dashboard">Dashboard</Link>
-                    <Link to="/collection">Collection</Link>
-                    <Link to="/gacha">Gacha</Link>
-                    <Link to="/battle">Battle</Link>
+                    <Link to="/dashboard">{t('nav.dashboard')}</Link>
+                    <Link to="/collection">{t('nav.collection')}</Link>
+                    <Link to="/gacha">{t('nav.gacha')}</Link>
+                    <Link to="/battle">{t('nav.battle')}</Link>
                 </div>
             </nav>
 
@@ -220,30 +227,30 @@ function CardCollection({ user }: CardCollectionProps) {
                     padding: '1rem',
                     borderRadius: '12px'
                 }}>
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <label style={{ color: 'white' }}>Filter</label>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <label style={{ color: 'white' }}>{t('collection.filters.label')}</label>
                         <select value={filter} onChange={handleFilterChange} style={{ padding: '0.5rem', borderRadius: '5px', border: 'none' }}>
-                            <option value="all">All ({allCards.length})</option>
-                            <option value="owned">Owned ({userCards.length})</option>
-                            <option value="not_owned">Missing ({allCards.length - userCards.length})</option>
-                            <option value="COMMON">Common</option>
-                            <option value="RARE">Rare</option>
-                            <option value="EPIC">Epic</option>
-                            <option value="LEGENDARY">Legendary</option>
+                            <option value="all">{t('collection.filters.all', { count: allCards.length })}</option>
+                            <option value="owned">{t('collection.filters.owned', { count: userCards.length })}</option>
+                            <option value="not_owned">{t('collection.filters.missing', { count: allCards.length - userCards.length })}</option>
+                            <option value="COMMON">{t('collection.filters.rarities.COMMON')}</option>
+                            <option value="RARE">{t('collection.filters.rarities.RARE')}</option>
+                            <option value="EPIC">{t('collection.filters.rarities.EPIC')}</option>
+                            <option value="LEGENDARY">{t('collection.filters.rarities.LEGENDARY')}</option>
                         </select>
 
-                        <label style={{ color: 'white' }}>Sort</label>
+                        <label style={{ color: 'white' }}>{t('collection.sort.label')}</label>
                         <select value={sortBy} onChange={handleSortChange} style={{ padding: '0.5rem', borderRadius: '5px', border: 'none' }}>
-                            <option value="name">Name</option>
-                            <option value="attack">Attack</option>
-                            <option value="defense">Defense</option>
-                            <option value="cost">Cost</option>
-                            <option value="rarity">Rarity</option>
+                            <option value="name">{t('collection.sort.name')}</option>
+                            <option value="attack">{t('collection.sort.attack')}</option>
+                            <option value="defense">{t('collection.sort.defense')}</option>
+                            <option value="cost">{t('collection.sort.cost')}</option>
+                            <option value="rarity">{t('collection.sort.rarity')}</option>
                         </select>
                     </div>
 
                     <div style={{ color: 'white' }}>
-                        Showing {sortedCards.length} cards
+                        {t('collection.showing', { count: sortedCards.length })}
                     </div>
                 </div>
 
@@ -265,6 +272,7 @@ function CardCollection({ user }: CardCollectionProps) {
                                         alt={card.name}
                                         style={cardImageStyle}
                                         className="card-image-clickable"
+                                        onError={handleImageError}
                                     />
                                     <span>{elementEmoji[card.element]}</span>
                                     {!isOwned && (
@@ -279,7 +287,7 @@ function CardCollection({ user }: CardCollectionProps) {
                                             borderRadius: '5px',
                                             fontSize: '0.8rem'
                                         }}>
-                                            Locked
+                                            {t('common.status.locked')}
                                         </div>
                                     )}
                                 </div>
@@ -287,20 +295,20 @@ function CardCollection({ user }: CardCollectionProps) {
                                 <div className="card-info">
                                     <h3>{card.name}</h3>
                                     <p style={{ fontSize: '0.9rem', color: '#666', margin: '0.5rem 0' }}>
-                                        {card.description}
+                                        {card.description || t('common.status.noDescription')}
                                     </p>
 
                                     <div className="card-stats">
-                                        <span className="stat">ATK {card.attack}</span>
-                                        <span className="stat">DEF {card.defense}</span>
-                                        <span className="stat">COST {card.cost}</span>
+                                        <span className="stat">{t('collection.stats.attack', { value: card.attack })}</span>
+                                        <span className="stat">{t('collection.stats.defense', { value: card.defense })}</span>
+                                        <span className="stat">{t('collection.stats.cost', { value: card.cost })}</span>
                                     </div>
 
                                     <div
                                         className="rarity"
                                         style={{ background: rarityColor[card.rarity] }}
                                     >
-                                        {card.rarity}
+                                        {t('cards.rarity.' + card.rarity)}
                                     </div>
                                 </div>
                             </div>
@@ -315,7 +323,7 @@ function CardCollection({ user }: CardCollectionProps) {
                         fontSize: '1.2rem',
                         marginTop: '3rem'
                     }}>
-                        No cards match the selected filters.
+                        {t('collection.empty')}
                     </div>
                 )}
 
@@ -326,31 +334,31 @@ function CardCollection({ user }: CardCollectionProps) {
                         padding: '1.5rem',
                         marginBottom: '2rem'
                     }}>
-                        <h2 style={{ marginBottom: '0.5rem' }}>Explore Card Collections</h2>
+                        <h2 style={{ marginBottom: '0.5rem' }}>{t('collection.explore.title')}</h2>
                         <p style={{ color: '#ccc', marginBottom: '1rem' }}>
-                            These datasets come from the <code>/api/cards/{'{'}cardId{'}'}/collections</code> and <code>/api/collections</code> backend endpoints.
+                            {t('collection.explore.description', { cardEndpoint: cardEndpointText, collectionsEndpoint: collectionsEndpointText })}
                         </p>
                         <label style={{ color: 'white', display: 'block', marginBottom: '0.5rem' }}>
-                            Choose a card to see its curated collections
+                            {t('collection.explore.selectLabel')}
                         </label>
                         <select
                             value={selectedCardId}
                             onChange={handleCollectionSelect}
                             style={{ padding: '0.6rem', borderRadius: '8px', minWidth: '240px', border: 'none' }}
                         >
-                            <option value="">Select a card</option>
+                            <option value="">{t('collection.explore.placeholder')}</option>
                             {allCards.map((card) => (
                                 <option key={card.id} value={card.id}>
-                                    {card.name} ({card.rarity})
+                                    {card.name} ({t('cards.rarity.' + card.rarity)})
                                 </option>
                             ))}
                         </select>
 
-                        {collectionsLoading && <p style={{ color: '#ccc', marginTop: '1rem' }}>Loading collections...</p>}
+                        {collectionsLoading && <p style={{ color: '#ccc', marginTop: '1rem' }}>{t('collection.explore.loading')}</p>}
                         {collectionsError && <p style={{ color: '#ff6b6b', marginTop: '1rem' }}>{collectionsError}</p>}
                         {!collectionsLoading && selectedCardId && collections.length === 0 && !collectionsError && (
                             <p style={{ color: '#ccc', marginTop: '1rem' }}>
-                                This card does not have any curated collections yet.
+                                {t('collection.explore.none')}
                             </p>
                         )}
 
@@ -358,8 +366,8 @@ function CardCollection({ user }: CardCollectionProps) {
                             {collections.map((collection) => (
                                 <div key={collection.id} className="card" style={{ background: 'rgba(0,0,0,0.35)' }}>
                                     <h3>{collection.name}</h3>
-                                    <p style={{ color: '#bbb', minHeight: '48px' }}>{collection.description || 'No description provided.'}</p>
-                                    <p style={{ fontWeight: 600, color: '#fff' }}>{collection.images.length} image{collection.images.length === 1 ? '' : 's'}</p>
+                                    <p style={{ color: '#bbb', minHeight: '48px' }}>{collection.description || t('collection.explore.descriptionFallback')}</p>
+                                    <p style={{ fontWeight: 600, color: '#fff' }}>{t('collection.explore.imageCount', { count: collection.images.length })}</p>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
                                         {collection.images.slice(0, 2).map((image) => (
                                             <div key={image.id} style={{
@@ -367,9 +375,9 @@ function CardCollection({ user }: CardCollectionProps) {
                                                 borderRadius: '10px',
                                                 background: 'rgba(255,255,255,0.05)'
                                             }}>
-                                                <strong>{image.title || 'Untitled image'}</strong>
-                                                <p style={{ margin: '0.25rem 0', color: '#ccc' }}>{image.description || 'No description'}</p>
-                                                <small style={{ color: '#999' }}>{image.dialogues.length} dialogue lines</small>
+                                                <strong>{image.title || t('collection.explore.imageTitleFallback')}</strong>
+                                                <p style={{ margin: '0.25rem 0', color: '#ccc' }}>{image.description || t('collection.explore.imageDescriptionFallback')}</p>
+                                                <small style={{ color: '#999' }}>{t('collection.explore.dialogueCount', { count: image.dialogues.length })}</small>
                                             </div>
                                         ))}
                                     </div>
@@ -383,7 +391,7 @@ function CardCollection({ user }: CardCollectionProps) {
                         borderRadius: '16px',
                         padding: '1.5rem'
                     }}>
-                        <h3 style={{ marginBottom: '0.5rem' }}>Search Collections by Name</h3>
+                        <h3 style={{ marginBottom: '0.5rem' }}>{t('collection.search.title')}</h3>
                         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                             <input
                                 type="text"
@@ -394,7 +402,7 @@ function CardCollection({ user }: CardCollectionProps) {
                                         setSearchError(null);
                                     }
                                 }}
-                                placeholder="Enter collection name"
+                                placeholder={t('collection.search.placeholder')}
                                 style={{
                                     flex: '1 1 240px',
                                     padding: '0.6rem',
@@ -403,7 +411,7 @@ function CardCollection({ user }: CardCollectionProps) {
                                 }}
                             />
                             <button type="submit" className="btn btn-secondary" disabled={searchLoading}>
-                                {searchLoading ? 'Searching...' : 'Search'}
+                                {searchLoading ? t('collection.search.searching') : t('collection.search.button')}
                             </button>
                         </form>
                         {searchError && <p style={{ color: '#ff6b6b' }}>{searchError}</p>}
@@ -412,14 +420,14 @@ function CardCollection({ user }: CardCollectionProps) {
                                 {searchResults.map((collection) => (
                                     <div key={collection.id} className="card" style={{ background: 'rgba(0,0,0,0.35)' }}>
                                         <h3>{collection.name}</h3>
-                                        <p style={{ color: '#bbb' }}>{collection.description || 'No description provided.'}</p>
-                                        <p style={{ fontWeight: 600, color: '#fff' }}>Images: {collection.images.length}</p>
+                                        <p style={{ color: '#bbb' }}>{collection.description || t('collection.explore.descriptionFallback')}</p>
+                                        <p style={{ fontWeight: 600, color: '#fff' }}>{t('collection.search.imageCount', { count: collection.images.length })}</p>
                                     </div>
                                 ))}
                             </div>
                         )}
                         {!searchLoading && searchResults.length === 0 && !searchError && searchTerm && (
-                            <p style={{ color: '#ccc' }}>No collections found with that name.</p>
+                            <p style={{ color: '#ccc' }}>{t('collection.search.noResults')}</p>
                         )}
                     </div>
                 </section>

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { UPLOAD_BASE_URL } from '../config';
+import { handleImageError } from '../utils/imageFallback';
 import type { CardCollectionSummary, CollectionImage } from '../types/collection';
 
 interface Card {
@@ -44,6 +46,7 @@ function resolveImageUrl(imageUrl?: string | null) {
 }
 
 function GalleryManager() {
+    const { t } = useTranslation();
     const [cards, setCards] = useState<Card[]>([]);
     const [cardsLoading, setCardsLoading] = useState(true);
     const [cardsError, setCardsError] = useState<string | null>(null);
@@ -73,7 +76,7 @@ function GalleryManager() {
                 setCardsError(null);
             } catch (error) {
                 console.error('Failed to load cards', error);
-                setCardsError('Unable to load cards right now.');
+                setCardsError(t('gallery.messages.cardsError'));
             } finally {
                 setCardsLoading(false);
             }
@@ -107,7 +110,7 @@ function GalleryManager() {
         } catch (error) {
             console.error('Failed to load collections', error);
             setCollections([]);
-            setCollectionsError('Unable to load collections for this card.');
+            setCollectionsError(t('gallery.messages.error'));
         } finally {
             setCollectionsLoading(false);
         }
@@ -133,7 +136,7 @@ function GalleryManager() {
             };
 
             if (!payload.name) {
-                setCollectionsError('Collection name is required.');
+                setCollectionsError(t('gallery.messages.requiredName'));
                 return;
             }
 
@@ -148,7 +151,7 @@ function GalleryManager() {
             setCollectionsError(null);
         } catch (error) {
             console.error('Failed to save collection', error);
-            setCollectionsError(editingCollectionId ? 'Unable to update collection.' : 'Unable to create collection.');
+            setCollectionsError(t('gallery.messages.saveCollection'));
         } finally {
             setSavingCollection(false);
         }
@@ -158,7 +161,7 @@ function GalleryManager() {
         if (!selectedCardId) {
             return;
         }
-        if (!window.confirm('Delete this collection? This will also remove its images.')) {
+        if (!window.confirm(t('common.confirmations.deleteCollection'))) {
             return;
         }
         try {
@@ -170,7 +173,7 @@ function GalleryManager() {
             await fetchCollections(Number(selectedCardId));
         } catch (error) {
             console.error('Failed to delete collection', error);
-            setCollectionsError('Unable to delete collection right now.');
+            setCollectionsError(t('gallery.messages.cannotDelete'));
         }
     };
 
@@ -223,7 +226,7 @@ function GalleryManager() {
             };
 
             if (!payload.imageUrl) {
-                setCollectionsError('Image URL is required.');
+                setCollectionsError(t('gallery.messages.requiredImageUrl'));
                 return;
             }
 
@@ -240,14 +243,14 @@ function GalleryManager() {
             setCollectionsError(null);
         } catch (error) {
             console.error('Failed to save image', error);
-            setCollectionsError(editingImageId ? 'Unable to update image.' : 'Unable to add image.');
+            setCollectionsError(t('gallery.messages.saveImage'));
         } finally {
             setSavingImage(false);
         }
     };
 
     const handleDeleteImage = async (imageId: number) => {
-        if (!window.confirm('Delete this image?')) {
+        if (!window.confirm(t('common.confirmations.deleteImage'))) {
             return;
         }
         try {
@@ -260,7 +263,7 @@ function GalleryManager() {
             }
         } catch (error) {
             console.error('Failed to delete image', error);
-            setCollectionsError('Unable to delete image right now.');
+            setCollectionsError(t('gallery.messages.cannotDeleteImage'));
         }
     };
 
@@ -284,7 +287,7 @@ function GalleryManager() {
                 gap: '1rem',
                 marginBottom: '2rem',
             }}>
-                <label style={{ fontWeight: 600 }}>Select a card to manage its galleries</label>
+                <label style={{ fontWeight: 600 }}>{t('gallery.selectLabel')}</label>
                 <select
                     value={selectedCardId}
                     onChange={(event) => setSelectedCardId(event.target.value ? Number(event.target.value) : '')}
@@ -298,12 +301,12 @@ function GalleryManager() {
                         fontSize: '1rem',
                     }}
                 >
-                    <option value="">-- Choose a card --</option>
-                    {cards.map((card) => (
-                        <option key={card.id} value={card.id}>
-                            {card.name} ({card.rarity})
-                        </option>
-                    ))}
+                    <option value="">{t('gallery.selectPlaceholder')}</option>
+                            {cards.map((card) => (
+                                <option key={card.id} value={card.id}>
+                                    {card.name} ({t('cards.rarity.' + card.rarity)})
+                                </option>
+                            ))}
                 </select>
                 {cardsError && <span style={{ color: '#ff9e9e' }}>{cardsError}</span>}
                 {selectedCard && (
@@ -322,14 +325,15 @@ function GalleryManager() {
                                 src={resolveImageUrl(selectedCard.imageUrl)}
                                 alt={selectedCard.name}
                                 style={{ width: '100px', height: '140px', objectFit: 'cover', borderRadius: '8px' }}
+                                onError={handleImageError}
                             />
                         )}
                         <div style={{ flex: 1, minWidth: 220 }}>
                             <h3 style={{ margin: 0 }}>{selectedCard.name}</h3>
                             <p style={{ margin: '0.35rem 0', color: 'rgba(255,255,255,0.7)' }}>{selectedCard.description}</p>
                             <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
-                                <span>Rarity: {selectedCard.rarity}</span> {' | '}
-                                <span>Element: {selectedCard.element}</span>
+                                <span>{t('gallery.cardInfo.rarity')}: {t('cards.rarity.' + selectedCard.rarity)}</span> {' | '}
+                                <span>{t('gallery.cardInfo.element')}: {t('cards.elements.' + selectedCard.element)}</span>
                             </div>
                         </div>
                     </div>
@@ -349,11 +353,11 @@ function GalleryManager() {
                         disabled={!selectedCardId}
                         className="btn"
                     >
-                        + Create Collection
+                        + {t('gallery.actions.create')}
                     </button>
                     {collectionFormVisible && (
                         <button type="button" onClick={resetCollectionForm} className="btn btn-secondary">
-                            Cancel
+                            {t('gallery.actions.cancel')}
                         </button>
                     )}
                 </div>
@@ -369,25 +373,25 @@ function GalleryManager() {
                         gap: '1rem',
                     }}>
                         <h3 style={{ margin: 0 }}>
-                            {editingCollectionId ? 'Edit Collection' : 'New Collection'}
+                            {editingCollectionId ? t('gallery.form.editTitle') : t('gallery.form.newTitle')}
                         </h3>
                         <input
                             type="text"
-                            placeholder="Collection name"
+                            placeholder={t('gallery.form.namePlaceholder')}
                             value={collectionForm.name}
                             onChange={(event) => setCollectionForm((prev) => ({ ...prev, name: event.target.value }))}
                             required
                             style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: 'none' }}
                         />
                         <textarea
-                            placeholder="Description (optional)"
+                            placeholder={t('gallery.form.descriptionPlaceholder')}
                             value={collectionForm.description}
                             onChange={(event) => setCollectionForm((prev) => ({ ...prev, description: event.target.value }))}
                             rows={3}
                             style={{ padding: '0.75rem 1rem', borderRadius: '10px', border: 'none' }}
                         />
                         <button type="submit" className="btn" disabled={savingCollection}>
-                            {savingCollection ? 'Saving...' : editingCollectionId ? 'Update Collection' : 'Create Collection'}
+                            {savingCollection ? t('gallery.form.saving') : editingCollectionId ? t('gallery.form.buttonUpdate') : t('gallery.form.buttonCreate')}
                         </button>
                     </form>
                 )}
@@ -396,15 +400,15 @@ function GalleryManager() {
             {collectionsError && <div style={{ color: '#ff9e9e', marginBottom: '1rem' }}>{collectionsError}</div>}
 
             {!selectedCardId && (
-                <p style={{ color: 'rgba(255,255,255,0.6)' }}>Select a card to see its collections.</p>
+                <p style={{ color: 'rgba(255,255,255,0.6)' }}>{t('gallery.messages.selectCard')}</p>
             )}
 
             {selectedCardId && collectionsLoading && (
-                <p style={{ color: 'rgba(255,255,255,0.8)' }}>Loading collections...</p>
+                <p style={{ color: 'rgba(255,255,255,0.8)' }}>{t('gallery.messages.loading')}</p>
             )}
 
             {selectedCardId && !collectionsLoading && collections.length === 0 && (
-                <p style={{ color: 'rgba(255,255,255,0.6)' }}>No collections yet. Create the first one!</p>
+                <p style={{ color: 'rgba(255,255,255,0.6)' }}>{t('gallery.messages.none')}</p>
             )}
 
             <div style={{ display: 'grid', gap: '1.25rem' }}>
@@ -424,21 +428,21 @@ function GalleryManager() {
                             <div style={{ flex: 1, minWidth: 240 }}>
                                 <h3 style={{ marginTop: 0, marginBottom: '0.35rem' }}>{collection.name}</h3>
                                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)' }}>
-                                    {collection.description || 'No description'}
+                                    {collection.description || t('common.status.noDescriptionShort')}
                                 </p>
                                 <p style={{ marginTop: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
-                                    Images: {collection.images?.length || 0}
+                                    {t('gallery.collection.imagesLabel', { count: collection.images?.length || 0 })}
                                 </p>
                             </div>
                             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                 <button type="button" className="btn btn-secondary" onClick={() => toggleCollection(collection.id)}>
-                                    {expandedCollectionId === collection.id ? 'Hide Gallery' : 'Open Gallery'}
+                                    {expandedCollectionId === collection.id ? t('gallery.collection.hide') : t('gallery.collection.open')}
                                 </button>
                                 <button type="button" className="btn btn-secondary" onClick={() => openEditCollection(collection)}>
-                                    Edit
+                                    {t('gallery.collection.edit')}
                                 </button>
                                 <button type="button" className="btn btn-danger" onClick={() => handleDeleteCollection(collection.id)}>
-                                    Delete
+                                    {t('gallery.collection.delete')}
                                 </button>
                             </div>
                         </div>
@@ -467,12 +471,13 @@ function GalleryManager() {
                                                         src={resolveImageUrl(image.imageUrl)}
                                                         alt={image.title}
                                                         style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '10px' }}
+                                                        onError={handleImageError}
                                                     />
                                                 )}
                                                 <div>
                                                     <strong>{image.title || 'Untitled image'}</strong>
                                                     <p style={{ margin: '0.25rem 0', color: 'rgba(255,255,255,0.7)' }}>
-                                                        {image.description || 'No description'}
+                                                        {image.description || t('common.status.noDescriptionShort')}
                                                     </p>
                                                     <p style={{ margin: 0, fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
                                                         Order: {image.orderIndex}
@@ -484,21 +489,21 @@ function GalleryManager() {
                                                         className="btn btn-secondary"
                                                         onClick={() => startEditImage(collection.id, image)}
                                                     >
-                                                        Edit
+                                                        {t('gallery.collection.edit')}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         className="btn btn-danger"
                                                         onClick={() => handleDeleteImage(image.id)}
                                                     >
-                                                        Delete
+                                                        {t('gallery.collection.delete')}
                                                     </button>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <p style={{ gridColumn: '1 / -1', color: 'rgba(255,255,255,0.6)' }}>
-                                            This collection has no images yet.
+                                            {t('common.messages.noImages')}
                                         </p>
                                     )}
                                 </div>
@@ -512,11 +517,11 @@ function GalleryManager() {
                                     gap: '0.75rem',
                                 }}>
                                     <h4 style={{ margin: 0 }}>
-                                        {editingImageId ? 'Edit Image' : 'Add Image'}
+                                        {editingImageId ? t('gallery.imageForm.editTitle') : t('gallery.imageForm.title')}
                                     </h4>
                                     <input
                                         type="url"
-                                        placeholder="Image URL"
+                                        placeholder={t('gallery.imageForm.urlPlaceholder')}
                                         value={imageForm.imageUrl}
                                         onChange={(event) => setImageForm((prev) => ({ ...prev, imageUrl: event.target.value }))}
                                         required
@@ -524,20 +529,20 @@ function GalleryManager() {
                                     />
                                     <input
                                         type="text"
-                                        placeholder="Title"
+                                        placeholder={t('gallery.imageForm.titlePlaceholder')}
                                         value={imageForm.title}
                                         onChange={(event) => setImageForm((prev) => ({ ...prev, title: event.target.value }))}
                                         style={{ padding: '0.6rem 0.9rem', borderRadius: '10px', border: 'none' }}
                                     />
                                     <textarea
-                                        placeholder="Description"
+                                        placeholder={t('gallery.imageForm.descriptionPlaceholder')}
                                         value={imageForm.description}
                                         onChange={(event) => setImageForm((prev) => ({ ...prev, description: event.target.value }))}
                                         rows={3}
                                         style={{ padding: '0.6rem 0.9rem', borderRadius: '10px', border: 'none' }}
                                     />
                                     <label style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
-                                        Display order
+                                        {t('gallery.imageForm.orderLabel')}
                                         <input
                                             type="number"
                                             value={imageForm.orderIndex}
@@ -547,11 +552,11 @@ function GalleryManager() {
                                     </label>
                                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                         <button type="submit" className="btn" disabled={savingImage}>
-                                            {savingImage ? 'Saving...' : editingImageId ? 'Update Image' : 'Add Image'}
+                                            {savingImage ? t('gallery.imageForm.saving') : editingImageId ? t('gallery.imageForm.updateButton') : t('gallery.imageForm.addButton')}
                                         </button>
                                         {editingImageId && (
                                             <button type="button" className="btn btn-secondary" onClick={resetImageForm}>
-                                                Cancel edit
+                                                {t('gallery.imageForm.cancelEdit')}
                                             </button>
                                         )}
                                     </div>

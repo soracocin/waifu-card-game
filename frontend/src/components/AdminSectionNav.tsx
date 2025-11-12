@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 function AdminSectionNav() {
+    const { t } = useTranslation();
     const linkStyle = {
         padding: '0.5rem 1.25rem',
         borderRadius: '999px',
@@ -31,7 +33,7 @@ function AdminSectionNav() {
                     ...(isActive ? activeStyle : {}),
                 })}
             >
-                Card Manager
+                {t('admin.nav.cardManager')}
             </NavLink>
             <NavLink
                 to="/admin/galleries"
@@ -40,7 +42,7 @@ function AdminSectionNav() {
                     ...(isActive ? activeStyle : {}),
                 })}
             >
-                Gallery Manager
+                {t('admin.nav.galleryManager')}
             </NavLink>
         </div>
     );

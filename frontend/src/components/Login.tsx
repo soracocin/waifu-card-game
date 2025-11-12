@@ -2,7 +2,9 @@ import { useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import LanguageSwitcher from './LanguageSwitcher';
 import type { User } from '../types/user';
 
 interface FormState {
@@ -14,6 +16,7 @@ interface FormState {
 function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
+    const { t } = useTranslation();
     const [isRegistering, setIsRegistering] = useState(false);
     const [formData, setFormData] = useState<FormState>({
         username: '',
@@ -47,9 +50,9 @@ function Login() {
             navigate('/dashboard');
         } catch (submissionError) {
             if (axios.isAxiosError(submissionError)) {
-                setError(submissionError.response?.data?.error || 'Authentication failed');
+                setError(submissionError.response?.data?.error || t('auth.error'));
             } else {
-                setError('Authentication failed');
+                setError(t('auth.error'));
             }
         } finally {
             setLoading(false);
@@ -62,11 +65,15 @@ function Login() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            position: 'relative'
         }}>
+            <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                <LanguageSwitcher />
+            </div>
             <div className="form">
                 <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#333' }}>
-                    {isRegistering ? 'Create an account' : 'Sign in'}
+                    {isRegistering ? t('auth.registerTitle') : t('auth.signInTitle')}
                 </h2>
 
                 {error && (
@@ -84,40 +91,40 @@ function Login() {
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Username</label>
+                        <label>{t('auth.usernameLabel')}</label>
                         <input
                             type="text"
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
                             required
-                            placeholder="Enter username"
+                            placeholder={t('auth.usernamePlaceholder')}
                         />
                     </div>
 
                     {isRegistering && (
                         <div className="form-group">
-                            <label>Email</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required
-                                placeholder="Enter email"
-                            />
-                        </div>
-                    )}
+                        <label>{t('auth.emailLabel')}</label>
+                        <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            placeholder={t('auth.emailPlaceholder')}
+                        />
+                    </div>
+                )}
 
                     <div className="form-group">
-                        <label>Password</label>
+                        <label>{t('auth.passwordLabel')}</label>
                         <input
                             type="password"
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
                             required
-                            placeholder="Enter password"
+                            placeholder={t('auth.passwordPlaceholder')}
                         />
                     </div>
 
@@ -127,12 +134,12 @@ function Login() {
                         disabled={loading}
                         style={{ width: '100%', marginBottom: '1rem' }}
                     >
-                        {loading ? 'Working...' : (isRegistering ? 'Create account' : 'Sign in')}
+                        {loading ? t('auth.working') : (isRegistering ? t('auth.submitRegister') : t('auth.submitSignIn'))}
                     </button>
                 </form>
 
                 <p style={{ textAlign: 'center', color: '#666' }}>
-                    {isRegistering ? 'Already have an account?' : 'Need an account?'}
+                    {isRegistering ? t('auth.toggleHaveAccount') : t('auth.toggleNeedAccount')}
                     <button
                         type="button"
                         onClick={() => setIsRegistering((prev) => !prev)}
@@ -145,7 +152,7 @@ function Login() {
                             marginLeft: '0.5rem'
                         }}
                     >
-                        {isRegistering ? 'Sign in' : 'Register now'}
+                        {isRegistering ? t('auth.toggleSignIn') : t('auth.toggleRegister')}
                     </button>
                 </p>
             </div>

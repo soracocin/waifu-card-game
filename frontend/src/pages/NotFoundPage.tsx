@@ -1,14 +1,22 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../layouts/AuthLayout';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 function NotFoundPage() {
+    const { t } = useTranslation();
+
     return (
         <AuthLayout>
             <div style={{
+                position: 'relative',
                 textAlign: 'center',
                 color: 'white',
                 padding: '2rem'
             }}>
+                <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                    <LanguageSwitcher />
+                </div>
                 <div style={{
                     fontSize: '6rem',
                     fontWeight: 'bold',
@@ -26,17 +34,17 @@ function NotFoundPage() {
                     marginBottom: '1rem',
                     fontWeight: '600'
                 }}>
-                    Trang không tồn tại
+                    {t('notFound.title')}
                 </h1>
                 
                 <p style={{
                     fontSize: '1.1rem',
                     marginBottom: '2rem',
                     opacity: 0.9,
-                    lineHeight: '1.6'
+                    lineHeight: '1.6',
+                    whiteSpace: 'pre-line'
                 }}>
-                    Xin lỗi, trang bạn đang tìm kiếm không tồn tại.<br />
-                    Có thể đường dẫn đã bị thay đổi hoặc bị xóa.
+                    {t('notFound.description')}
                 </p>
                 
                 <div style={{
@@ -56,7 +64,7 @@ function NotFoundPage() {
                             transition: 'all 0.3s ease'
                         }}
                     >
-                        🏠 Về trang chủ
+                        {t('notFound.home')}
                     </Link>
                     
                     <button 
@@ -69,7 +77,7 @@ function NotFoundPage() {
                             transition: 'all 0.3s ease'
                         }}
                     >
-                        ⬅️ Quay lại
+                        {t('notFound.back')}
                     </button>
                 </div>
                 
@@ -78,7 +86,7 @@ function NotFoundPage() {
                     fontSize: '3rem',
                     opacity: 0.7
                 }}>
-                    🌸
+                    {t('notFound.emoji')}
                 </div>
             </div>
         </AuthLayout>

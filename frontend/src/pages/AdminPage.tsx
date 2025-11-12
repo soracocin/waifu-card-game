@@ -2,9 +2,11 @@ import AppLayout from '../layouts/AppLayout';
 import CardManager from '../components/CardManager';
 import AdminSectionNav from '../components/AdminSectionNav';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 function AdminPage() {
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     if (!user) {
         return null;
@@ -23,7 +25,7 @@ function AdminPage() {
                 overflowX: 'auto',
             }}>
                 <h2 style={{ textAlign: 'center', marginBottom: '1.25rem', fontWeight: 700, letterSpacing: 1, color: '#fff' }}>
-                    Qu���n lA� th��� bA�i
+                    {t('admin.cardsHeading')}
                 </h2>
                 <AdminSectionNav />
                 <CardManager />

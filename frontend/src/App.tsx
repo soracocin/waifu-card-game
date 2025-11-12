@@ -9,13 +9,15 @@ import AdminGalleriesPage from './pages/AdminGalleriesPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import './App.css';
 
 function App() {
     const { user, loading } = useAuth();
+    const { t } = useTranslation();
 
     if (loading) {
-        return <div className="loading">Loading...</div>;
+        return <div className="loading">{t('common.loading')}</div>;
     }
 
     return (

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { UPLOAD_BASE_URL } from "../config";
+import { handleImageError } from '../utils/imageFallback';
 interface Card {
     id?: number;
     name: string;
@@ -14,6 +16,7 @@ interface Card {
 }
 
 const CardManager: React.FC = () => {
+    const { t } = useTranslation();
     const [cards, setCards] = useState<Card[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ const CardManager: React.FC = () => {
             setCards(response.data);
             setError(null);
         } catch (err) {
-            setError('Failed to load cards');
+            setError(t('cardManager.errors.load'));
             console.error('Error loading cards:', err);
         } finally {
             setLoading(false);
@@ -108,7 +111,7 @@ const CardManager: React.FC = () => {
             loadCards();
             setError(null);
         } catch (err) {
-            setError(editingCard ? 'Failed to update card' : 'Failed to create card');
+            setError(editingCard ? t('cardManager.errors.update') : t('cardManager.errors.create'));
             console.error('Error saving card:', err);
         }
     };
@@ -121,13 +124,13 @@ const CardManager: React.FC = () => {
     };
 
     const handleDelete = async (cardId: number) => {
-        if (window.confirm('Are you sure you want to delete this card?')) {
+        if (window.confirm(t('common.confirmations.deleteCard'))) {
             try {
                 await axios.delete(`http://localhost:8080/api/cards/${cardId}`);
                 loadCards();
                 setError(null);
             } catch (err) {
-                setError('Failed to delete card');
+                setError(t('cardManager.errors.delete'));
                 console.error('Error deleting card:', err);
             }
         }
@@ -245,18 +248,18 @@ const CardManager: React.FC = () => {
     };
 
     if (loading) {
-        return <div className="loading">Loading cards...</div>;
+        return <div className="loading">{t('cardManager.loading')}</div>;
     }
 
     return (
         <div className="card-manager">
             <div className="card-manager-header">
-                <h2>Card Management</h2>
+                <h2>{t('cardManager.title')}</h2>
                 <button 
                     className="btn-primary"
                     onClick={() => setShowForm(true)}
                 >
-                    Add New Card
+                    {t('cardManager.add')}
                 </button>
             </div>
 
@@ -270,14 +273,14 @@ const CardManager: React.FC = () => {
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h3>{editingCard ? 'Edit Card' : 'Create New Card'}</h3>
+                            <h3>{editingCard ? t('cardManager.form.editTitle') : t('cardManager.form.createTitle')}</h3>
                             <button className="close-btn" onClick={resetForm}>×</button>
                         </div>
                         
                         <form onSubmit={handleSubmit} className="card-form">
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label htmlFor="name">Name *</label>
+                                    <label htmlFor="name">{t('cardManager.form.fields.name')}</label>
                                     <input
                                         type="text"
                                         id="name"
@@ -290,7 +293,7 @@ const CardManager: React.FC = () => {
                                 </div>
                                 
                                 <div className="form-group">
-                                    <label htmlFor="imageFile">Card Image</label>
+                                    <label htmlFor="imageFile">{t('cardManager.form.fields.image')}</label>
                                     <input
                                         type="file"
                                         id="imageFile"
@@ -300,11 +303,12 @@ const CardManager: React.FC = () => {
                                     />
                                     {imagePreview && (
                                         <div className="image-preview mt-2">
-                                            <p>Image Preview:</p>
+                                            <p>{t('cardManager.form.fields.imagePreview')}</p>
                                             <img 
                                                 src={UPLOAD_BASE_URL + imagePreview} 
                                                 alt="Preview" 
                                                 style={{ maxWidth: '150px', maxHeight: '200px', objectFit: 'cover' }} 
+                                                onError={handleImageError}
                                             />
                                         </div>
                                     )}
@@ -312,7 +316,7 @@ const CardManager: React.FC = () => {
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="description">Description</label>
+                                <label htmlFor="description">{t('cardManager.form.fields.description')}</label>
                                 <textarea
                                     id="description"
                                     name="description"
@@ -324,7 +328,7 @@ const CardManager: React.FC = () => {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label htmlFor="rarity">Rarity *</label>
+                                    <label htmlFor="rarity">{t('cardManager.form.fields.rarity')}</label>
                                     <select
                                         id="rarity"
                                         name="rarity"
@@ -332,16 +336,16 @@ const CardManager: React.FC = () => {
                                         onChange={handleInputChange}
                                         required
                                     >
-                                        {rarities.map(rarity => (
+                                        {rarities.map((rarity) => (
                                             <option key={rarity} value={rarity}>
-                                                {rarity}
+                                                {t('cards.rarity.' + rarity)}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="element">Element *</label>
+                                    <label htmlFor="element">{t('cardManager.form.fields.element')}</label>
                                     <select
                                         id="element"
                                         name="element"
@@ -349,9 +353,9 @@ const CardManager: React.FC = () => {
                                         onChange={handleInputChange}
                                         required
                                     >
-                                        {elements.map(element => (
+                                        {elements.map((element) => (
                                             <option key={element} value={element}>
-                                                {getElementEmoji(element)} {element}
+                                                {getElementEmoji(element)} {t('cards.elements.' + element)}
                                             </option>
                                         ))}
                                     </select>
@@ -360,7 +364,7 @@ const CardManager: React.FC = () => {
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label htmlFor="attack">Attack *</label>
+                                    <label htmlFor="attack">{t('cardManager.form.fields.attack')}</label>
                                     <input
                                         type="number"
                                         id="attack"
@@ -373,7 +377,7 @@ const CardManager: React.FC = () => {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="defense">Defense *</label>
+                                    <label htmlFor="defense">{t('cardManager.form.fields.defense')}</label>
                                     <input
                                         type="number"
                                         id="defense"
@@ -386,7 +390,7 @@ const CardManager: React.FC = () => {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="cost">Cost *</label>
+                                    <label htmlFor="cost">{t('cardManager.form.fields.cost')}</label>
                                     <input
                                         type="number"
                                         id="cost"
@@ -401,10 +405,10 @@ const CardManager: React.FC = () => {
 
                             <div className="form-actions">
                                 <button type="button" className="btn-secondary" onClick={resetForm}>
-                                    Cancel
+                                    {t('cardManager.form.buttons.cancel')}
                                 </button>
                                 <button type="submit" className="btn-primary">
-                                    {editingCard ? 'Update Card' : 'Create Card'}
+                                    {editingCard ? t('cardManager.form.buttons.update') : t('cardManager.form.buttons.create')}
                                 </button>
                             </div>
                         </form>
@@ -419,27 +423,29 @@ const CardManager: React.FC = () => {
                             src={UPLOAD_BASE_URL + card.imageUrl}
                             alt={card.name}
                             style={adminCardImageStyle}
+                            onError={handleImageError}
                             onClick={() => {
                                 setPreviewImageUrl(UPLOAD_BASE_URL + card.imageUrl);
                                 setZoom(1);
                                 setOffset({ x: 0, y: 0 });
                             }}
-                            onError={e => (e.currentTarget.src = '/default-card.png')}
                             className="card-image-clickable"
                         />
                         <h3 style={{margin: '0.5rem 0 0.2rem 0'}}>{card.name}</h3>
                         <div style={{fontSize: '0.95rem', color: getRarityColor(card.rarity), marginBottom: '0.5rem'}}>
-                            {getElementEmoji(card.element)} {card.element} | {card.rarity}
+                            {getElementEmoji(card.element)} {t('cards.elements.' + card.element)} | {t('cards.rarity.' + card.rarity)}
                         </div>
-                        <p style={{fontSize: '0.95rem', marginBottom: '0.5rem', textAlign: 'center', minHeight: '48px'}}>{card.description}</p>
+                        <p style={{fontSize: '0.95rem', marginBottom: '0.5rem', textAlign: 'center', minHeight: '48px'}}>
+                            {card.description || t('common.status.noDescription')}
+                        </p>
                         <div style={{display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '0.95rem', marginBottom: '0.5rem'}}>
-                            <span>ATK: <b>{card.attack}</b></span>
-                            <span>DEF: <b>{card.defense}</b></span>
-                            <span>Cost: <b>{card.cost}</b></span>
+                            <span>{t('cardManager.list.attack')}: <b>{card.attack}</b></span>
+                            <span>{t('cardManager.list.defense')}: <b>{card.defense}</b></span>
+                            <span>{t('cardManager.list.cost')}: <b>{card.cost}</b></span>
                         </div>
                         <div style={{display: 'flex', gap: '0.5rem', marginTop: 'auto'}}>
-                            <button className="btn btn-secondary" onClick={() => handleEdit(card)}>Sửa</button>
-                            <button className="btn btn-danger" onClick={() => handleDelete(card.id!)}>Xóa</button>
+                            <button className="btn btn-secondary" onClick={() => handleEdit(card)}>{t('cardManager.list.edit')}</button>
+                            <button className="btn btn-danger" onClick={() => handleDelete(card.id!)}>{t('cardManager.list.delete')}</button>
                         </div>
                     </div>
                 ))}
@@ -447,7 +453,7 @@ const CardManager: React.FC = () => {
 
             {cards.length === 0 && (
                 <div className="no-cards">
-                    No cards found. Create your first card!
+                    {t('cardManager.list.empty')}
                 </div>
             )}
 
@@ -482,7 +488,7 @@ const CardManager: React.FC = () => {
                         onClick={e => e.stopPropagation()}
                     >
                         <img
-                            src={previewImageUrl}
+                            src={previewImageUrl ?? ''}
                             alt="Preview"
                             style={{
                                 transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`,
@@ -496,6 +502,7 @@ const CardManager: React.FC = () => {
                             }}
                             draggable={false}
                             onMouseDown={handleMouseDown}
+                            onError={handleImageError}
                         />
                         <div style={{
                             position: 'absolute',

@@ -2,9 +2,11 @@ import AppLayout from '../layouts/AppLayout';
 import GalleryManager from '../components/GalleryManager';
 import AdminSectionNav from '../components/AdminSectionNav';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 function AdminGalleriesPage() {
     const { user } = useAuth();
+    const { t } = useTranslation();
 
     if (!user) {
         return null;
@@ -23,7 +25,7 @@ function AdminGalleriesPage() {
                 overflowX: 'auto',
             }}>
                 <h2 style={{ textAlign: 'center', marginBottom: '1.25rem', fontWeight: 700, letterSpacing: 1, color: '#fff' }}>
-                    Gallery Management
+                    {t('admin.galleriesHeading')}
                 </h2>
                 <AdminSectionNav />
                 <GalleryManager />
